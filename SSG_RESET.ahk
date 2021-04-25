@@ -6,18 +6,22 @@
 
 ; Script Function / Help:
 ;  The following only apply inside the Minecraft window:
-;   1) When on the title screen, the "J" key will create a world on Easy with the desired seed.
-;   2) After loading in the world, "J" will exit the world and then auto create another world on Easy
-;   3) "I" will do the same thing as "J," but it will also delete the previous world.
-;   4) To just exit the world and not auto create world, press "U" on keyboard.
-;   5) To change the "I" and "J" and "U", scroll down to the bottom of this script, change the character before the double colon "::", and reload the script.
+;   1) When on the title screen, the "PgUp" key will create a world on Easy with the desired seed.
+;   2) After loading in the world, "PgUp" will exit the world and then auto create another world on Easy
+;   3) "PgDn" will do the same thing as "PgUp," but it will also delete the previous world.
+;   4) To just exit the world and not auto create world, press "Home" on keyboard.
+;   5) To open to LAN and make the dragon perch (make sure you're not in an inventory or already paused), press "End"
+;   6) To change the "PgDn" and "PgUp" and "Home" and "End," scroll down to the bottom of this script, change the character before the double colon "::", and reload the script.
 ;      https://www.autohotkey.com/docs/KeyList.htm Here are a list of the keys you can use.
-;   6) If you want to use a different seed (for category extensions, etc), scroll down to the line 
+;   7) If you want to use a different seed (for category extensions, etc), scroll down to the line 
 ;      that starts with ; SEED: and modify the seed in the line below as desired.
-;   7) If you are in a minecraft world and inside a menu or inventory, close that menu/inventory before
+;   8) If you are in a minecraft world and inside a menu or inventory, close that menu/inventory before
 ;      activating the script (otherwise, the macro may not function properly).
 ;      The macro that creates a new world only works from the title screen or from a previous world (unpaused and not in an inventory).
-;   8) If you scroll down to the WaitForWorldList function, you can also change the delay after the world list screen is shown.
+;   9) If you scroll down to the WaitForWorldList function, you can also change the delay after the world list screen is shown.
+;   10) Many people will set their key delay to much lower than 70, so the Perch function does automatically account for that.
+;       This is because I believe that opening chat is somewhat tick-based, so there must be at least 50 ms of delay (in practice it should be like at least 60) between the "/" and the rest of the command.
+;       So basically, that the number in the Perch function next to the "Sleep" command adds up to at least like 50-60ish when combined with the key delay for the rest of the script.
 
 
 #NoEnv
@@ -47,6 +51,23 @@ if (ErrorLevel) {
 	break
 }
 }
+}
+
+Perch()
+{
+Send, {Esc} ; pause
+Send, +`t
+Send, +`t
+Send, {enter} ; open to LAN
+Send, +`t
+Send, {enter} ; cheats on
+Send, `t
+Send, {enter} ; open to LAN
+Send, /
+Sleep, 50 ; You can lower this number or take it out completely if it adds up to over 50-60ish depending on your key delay.
+; Just make sure that this number plus your key delay is at least like 50-60 and it should work fine.
+SendInput, data merge entity @e[type=ender_dragon,limit=1] {{}DragonPhase:2{}}
+Send, {enter}
 }
 
 CreateWorld(W, H)
@@ -105,7 +126,7 @@ ExitWorld()
 
 #IfWinActive, Minecraft ; Ensure Minecraft is the active window.
 {
-J:: ; This is where the keybind for (re)creating an SSG world is set.
+PgUp:: ; This is where the keybind for (re)creating an SSG world is set.
    WinGetPos, X, Y, W, H, Minecraft
    WinGetActiveTitle, Title
    IfNotInString Title, player ; Determine if we are already in a world.
@@ -130,7 +151,7 @@ J:: ; This is where the keybind for (re)creating an SSG world is set.
    } 
 return
 
-I:: ; This is where the keybind for (re)creating an SSG world and deleting the previous one is set.
+PgDn:: ; This is where the keybind for (re)creating an SSG world and deleting the previous one is set.
    WinGetPos, X, Y, W, H, Minecraft
    WinGetActiveTitle, Title
    IfNotInString Title, player ; Determine if we are already in a world.
@@ -155,8 +176,12 @@ I:: ; This is where the keybind for (re)creating an SSG world and deleting the p
    } 
 return
 
-U::
+Home::
    ExitWorld()
+return
+
+End::
+   Perch()
 return
 }
 
