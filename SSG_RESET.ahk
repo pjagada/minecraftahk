@@ -7,7 +7,7 @@
 ; Script Function / Help:
 ;  The following only apply inside the Minecraft window:
 ;   1) When on the title screen, the "PgUp" key will create a world on Easy with the desired seed.
-;   2) After loading in the world, "PgUp" will exit the world and then auto create another world on Easy
+;   2) After loading in the world, "PgUp" will exit the world and then auto create another world on Easy. Scroll down to the CreateNewWorld function to change the difficulty.
 ;   3) "PgDn" will do the same thing as "PgUp," but it will also delete the previous world.
 ;   4) To just exit the world and not auto create world, press "Home" on keyboard.
 ;   5) To open to LAN and make the dragon perch (make sure you're not in an inventory or already paused), press "End"
@@ -23,7 +23,15 @@
 ;       This is because I believe that opening chat is somewhat tick-based, so there must be at least 50 ms of delay (in practice it should be like at least 60) between the "/" and the rest of the command.
 ;       So basically, that the number in the Perch function next to the "Sleep" command adds up to at least like 50-60ish when combined with the key delay for the rest of the script.
 
-
+; Troubleshooting:
+;   There can sometimes be an issue with DirectX and the PixelSearch command. This can sometimes cause two problems:
+;	1) When resetting from a previous world, the program won't register the title screen, so it will never create a new world.
+;          Unfortunately, there currently isn't a workaround, so you'll just have to first go to title screen by pressing "Home," and then you can press "PgUp" or "PgDn" to create a new world.
+;	2) This also messes up the WaitForWorldList command, so if you're having an issue with that, you won't be able to use that feature.
+;	   To disable this feature, add a semicolon before both lines where WaitForWorldList is called, which are in the CreateWorld and DeleteAndCreateWorld functions.
+;	   so make sure your key delay is long enough to where you can see the world list screen.
+;   These issues tend to happen more frequently for fullscreen users.
+ 
 #NoEnv
 SetWorkingDir %A_ScriptDir%
 
@@ -42,7 +50,7 @@ TypeSeed()
 SendInput, 2483313382402348964
 }
 
-WaitForWorldList(W, H)
+WaitForWorldList(W, H) ; do NOT add a semicolon at the beginning of this line if you're having the issue mentioned in troubleshooting. Scroll down to where the function is called.
 {
 Loop { ; Keep checking until world list screen has appeared
 PixelSearch, Px, Py, 0, 0, W, H, 0x00FCFC, 1, Fast
@@ -74,7 +82,7 @@ CreateWorld(W, H)
 {
 Send, `t
 Send, {enter}
-WaitForWorldList(W, H)
+WaitForWorldList(W, H) ; add a semicolon at the start of this line if you're having problems with the macro getting stuck
 CreateNewWorld()
 }
 
@@ -82,7 +90,7 @@ DeleteAndCreateWorld(W, H)
 {
 Send, `t
 Send, {enter}
-WaitForWorldList(W, H)
+WaitForWorldList(W, H) ; add a semicolon at the start of this line if you're having problems with the macro getting stuck
 Send, `t
 Send, `t
 Send, `t
@@ -96,17 +104,39 @@ CreateNewWorld()
 
 CreateNewWorld()
 {
+difficulty := "Easy" ; Set difficulty here. Options: "Peaceful" "Easy" "Normal" "Hard" "Hardcore"
 Send, `t
 Send, `t
 Send, `t
 Send, {enter}
 Send, `t
+if (difficulty = "Hardcore")
+{
+  Send, {enter}
+}
 Send, `t
-Send, {enter}
-Send, {enter}
-Send, {enter}
-Send, `t
-Send, `t
+if ((difficulty != "Normal") && (difficulty != "Hardcore")) ; Hard, Peaceful, or Easy
+{
+  Send, {enter}
+  if (difficulty != "Hard") ; Peaceful or Easy
+  {
+    Send, {enter}
+    if (difficulty != "Peaceful") ; Easy
+    {
+      Send, {enter}
+      if (difficulty != "Easy") ; invalid difficulty
+      {
+        MsgBox, Difficulty entered is invalid. Please check your spelling and enter a valid difficulty. Options are "Peaceful" "Easy" "Normal" "Hard" or "Hardcore"
+	ExitApp
+      }
+    }
+  }
+}
+if (difficulty != "Hardcore")
+{
+  Send, `t
+  Send, `t
+}
 Send, `t
 Send, `t
 Send, {enter}
