@@ -1,6 +1,8 @@
 ; Minecraft Reset Script (SET SEED version)
 ; Author:   onvo
 ; Edited by SLTRR, DesktopFolder, Peej, and others
+; To use this script, make sure you have autohotkey installed (autohotkey.com), then right click on the script file, and click "Run Script."
+; If you make any changes to the script by right clicking and clicking "Edit Script," make sure to reload the script by right clicking on the logo in your taskbar and clicking "Reload Script."
 
 ; Script Function / Help:
 ;  The following only apply inside the Minecraft window:
