@@ -149,7 +149,7 @@ ExitWorld()
 }
 
 if keyDelay
-   SetKeyDelay , %keyDelay% ; Change this value to increase/decrease delay between key presses. For your run to be verifiable, each of the three screens of world creation must be shown. An input delay of 70 ms is recommended to ensure this.
+   SetKeyDelay , %keyDelay%
 else {
    SendMode Input
 }
