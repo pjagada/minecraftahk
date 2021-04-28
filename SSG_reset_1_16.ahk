@@ -17,7 +17,7 @@
 ;   8) If you are in a minecraft world and inside a menu or inventory, close that menu/inventory before activating the script (otherwise, the macro may not function properly).
 ;      The macro that creates a new world only works from the title screen or from a previous world (unpaused and not in an inventory).
 ;   9) There have been a lot of verification problems of the world list screen not appearing because of the lag it takes to show that screen when you have a lot of worlds, even with a long key delay.
-;      This script has a feature that can counter that problem by waiting for the title screen to go away before proceeding with the keypresses.
+;      This script has a feature that can counter that problem by waiting for the title screen to go away and for the world list screen to appear before proceeding with the keypresses.
 
 ; Troubleshooting:
 ;   There can sometimes be an issue with DirectX and the PixelSearch command. This can sometimes cause two problems:
@@ -36,7 +36,7 @@ global difficulty := "Easy" ; Set difficulty here. Options: "Peaceful" "Easy" "N
 global SEED := 2483313382402348964 ; Default seed is the current Any% SSG 1.16 seed, you can change it to whatever seed you want.
 global keyDelay := 70 ; Change this value to increase/decrease delay between key presses. For your run to be verifiable, each of the three screens of world creation must be shown.
 		      ; An input delay of 70 ms is recommended to ensure this. To remove delay, set this value to 0. Warning: Doing so will likely make your runs unverifiable.
-global worldListWait := 70 ; Once world list screen appears, wait 70 ms and then proceed with macro. You can probably lower this number if you want, but this is a pretty safe amount.
+global worldListWait := 1 ; Once world list screen appears, wait 1 ms and then proceed. (You actually don't need anything more than that since the keyDelay takes care of showing the screen for enough time, but you can increase this if you want)
 			   ; If your macro is getting stuck, change this to 0, but make sure that your key delay is long enough to show this world screen after accounting for the lag that tends to happen when showing that screen.
 
 Perch()
