@@ -1,4 +1,4 @@
-; Minecraft Reset Script (SET SEED version)
+; Minecraft Reset Script (RANDOM SEED version)
 ; Author:   onvo
 ; Edited by SLTRR, DesktopFolder, Peej, and others
 ; To use this script, make sure you have autohotkey installed (autohotkey.com), then right click on the script file, and click "Run Script."
@@ -8,7 +8,7 @@
 ;  The following only apply inside the Minecraft window:
 ;   1) When on the title screen, the "PgUp" key will create a world.
 ;   2) After loading in the world, "PgUp" will exit the world and then auto create another world.
-;   3) "PgDn" will do the same thing as "PgUp," but it will also delete the previous world.
+;   3) "PgDn" will do the same thing as "PgUp," but it will also delete the 6th most recent world.
 ;   4) To just exit the world and not create another world, press "Home" on keyboard.
 ;   5) To change the "PgDn" and "PgUp" and "Home", scroll down to the bottom of this script, change the character before the double colon "::", and reload the script.
 ;      https://www.autohotkey.com/docs/KeyList.htm Here are a list of the keys you can use.
