@@ -52,7 +52,9 @@ Send, {enter} ; open to LAN
 Send, /
 Sleep, 50 ; You can lower this number or take it out completely if it adds up to over 50-60ish depending on your key delay.
 ; Just make sure that this number plus your key delay is at least like 50-60 and it should work fine. This is because opening chat is tick based so you need some delay.
-SendInput, data merge entity @e[type=ender_dragon,limit=1] {{}DragonPhase:2{}}
+SetKeyDelay, 0
+Send, data merge entity @e[type=ender_dragon,limit=1] {{}DragonPhase:2{}}
+SetKeyDelay, %keyDelay% 
 Send, {enter}
 }
 
@@ -137,7 +139,9 @@ Send, {enter}
 Send, `t
 Send, `t
 Send, `t
-SendInput, %SEED%
+SetKeyDelay, 0
+Send, %SEED%
+SetKeyDelay, %keyDelay%
 Send, +`t
 Send, +`t
 Send, {enter}
@@ -148,11 +152,7 @@ ExitWorld()
    send {Esc}+{Tab}{Enter} 
 }
 
-if keyDelay
-   SetKeyDelay , %keyDelay%
-else {
-   SendMode Input
-}
+SetKeyDelay , %keyDelay%
 
 #IfWinActive, Minecraft ; Ensure Minecraft is the active window.
 {
