@@ -34,6 +34,7 @@ SetWorkingDir %A_ScriptDir%
 ; Options:
 global difficulty := "Easy" ; Set difficulty here. Options: "Peaceful" "Easy" "Normal" "Hard" "Hardcore"
 global SEED := 2483313382402348964 ; Default seed is the current Any% SSG 1.16 seed, you can change it to whatever seed you want.
+global worldName := "New World" ; you can name the world whatever you want, put the name inside the quotation marks
 global keyDelay := 70 ; Change this value to increase/decrease delay between key presses. For your run to be verifiable, each of the three screens of world creation must be shown.
 		      ; An input delay of 70 ms is recommended to ensure this. To remove delay, set this value to 0. Warning: Doing so will likely make your runs unverifiable.
 global worldListWait := 1 ; Once world list screen appears, wait 1 ms and then proceed. (You actually don't need anything more than that since the keyDelay takes care of showing the screen for enough time, but you can increase this if you want)
@@ -104,6 +105,25 @@ ControlSend, ahk_parent, `t
 ControlSend, ahk_parent, `t
 ControlSend, ahk_parent, `t
 ControlSend, ahk_parent, {enter}
+if (worldName != "New World")
+{
+   if WinActive("Minecraft")
+   {
+      SendInput, ^a
+      Sleep, 1
+      SendInput, %worldName%
+      Sleep, 1
+   }
+   else
+   {
+      SetKeyDelay, 1
+      ControlSend, ahk_parent, {Control down}
+      ControlSend, ahk_parent, a
+      ControlSend, ahk_parent, {Control up}
+      ControlSend, ahk_parent, %worldName%
+      SetKeyDelay, %keyDelay%
+   }
+}
 ControlSend, ahk_parent, `t
 if (difficulty = "Hardcore")
 {
