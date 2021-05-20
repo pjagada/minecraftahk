@@ -52,14 +52,13 @@ Send, {enter} ; open to LAN
 Send, /
 Sleep, 50 ; You can lower this number or take it out completely if it adds up to over 50-60ish depending on your key delay.
 ; Just make sure that this number plus your key delay is at least like 50-60 and it should work fine. This is because opening chat is tick based so you need some delay.
-SetKeyDelay, 0
-Send, data merge entity @e[type=ender_dragon,limit=1] {{}DragonPhase:2{}}
-SetKeyDelay, %keyDelay% 
+SendInput, data merge entity @e[type=ender_dragon,limit=1] {{}DragonPhase:2{}}
 Send, {enter}
 }
 
-WaitForWorldList(W, H)
+WaitForWorldList()
 {
+   WinGetPos, X, Y, W, H, Minecraft
 Loop { ; Keep checking until world list screen has appeared
   PixelSearch, Px, Py, 0, 0, W, H, 0x00FCFC, 1, Fast
   if (ErrorLevel) {
@@ -69,57 +68,57 @@ Loop { ; Keep checking until world list screen has appeared
 }
 }
 
-CreateWorld(W, H)
+CreateWorld()
 {
-Send, `t
-Send, {enter}
+ControlSend, ahk_parent, `t
+ControlSend, ahk_parent, {enter}
 if (worldListWait)
 {
-  WaitForWorldList(W, H)
+  WaitForWorldList()
 }
 CreateNewWorld()
 }
 
-DeleteAndCreateWorld(W, H)
+DeleteAndCreateWorld()
 {
-Send, `t
-Send, {enter}
+ControlSend, ahk_parent, `t
+ControlSend, ahk_parent, {enter}
 if (worldListWait)
 {
-  WaitForWorldList(W, H)
+  WaitForWorldList()
 }
-Send, `t
-Send, `t
-Send, `t
-Send, `t
-Send, `t
-Send, {enter}
-Send, `t
-Send, {enter}
+ControlSend, ahk_parent, `t
+ControlSend, ahk_parent, `t
+ControlSend, ahk_parent, `t
+ControlSend, ahk_parent, `t
+ControlSend, ahk_parent, `t
+ControlSend, ahk_parent, {enter}
+ControlSend, ahk_parent, `t
+ControlSend, ahk_parent, {enter}
 CreateNewWorld()
 }
 
 CreateNewWorld()
 {
-Send, `t
-Send, `t
-Send, `t
-Send, {enter}
-Send, `t
+ControlSend, ahk_parent, `t
+ControlSend, ahk_parent, `t
+ControlSend, ahk_parent, `t
+ControlSend, ahk_parent, {enter}
+ControlSend, ahk_parent, `t
 if (difficulty = "Hardcore")
 {
-  Send, {enter}
+  ControlSend, ahk_parent, {enter}
 }
-Send, `t
+ControlSend, ahk_parent, `t
 if ((difficulty != "Normal") && (difficulty != "Hardcore")) ; Hard, Peaceful, or Easy
 {
-  Send, {enter}
+  ControlSend, ahk_parent, {enter}
   if (difficulty != "Hard") ; Peaceful or Easy
   {
-    Send, {enter}
+    ControlSend, ahk_parent, {enter}
     if (difficulty != "Peaceful") ; Easy
     {
-      Send, {enter}
+      ControlSend, ahk_parent, {enter}
       if (difficulty != "Easy") ; invalid difficulty
       {
         MsgBox, Difficulty entered is invalid. Please check your spelling and enter a valid difficulty. Options are "Peaceful" "Easy" "Normal" "Hard" or "Hardcore"
@@ -130,26 +129,47 @@ if ((difficulty != "Normal") && (difficulty != "Hardcore")) ; Hard, Peaceful, or
 }
 if (difficulty != "Hardcore")
 {
-  Send, `t
-  Send, `t
+  ControlSend, ahk_parent, `t
+  ControlSend, ahk_parent, `t
 }
-Send, `t
-Send, `t
-Send, {enter}
-Send, `t
-Send, `t
-Send, `t
-SetKeyDelay, 0
-Send, %SEED%
-SetKeyDelay, %keyDelay%
-Send, +`t
-Send, +`t
-Send, {enter}
+ControlSend, ahk_parent, `t
+ControlSend, ahk_parent, `t
+ControlSend, ahk_parent, {enter}
+ControlSend, ahk_parent, `t
+ControlSend, ahk_parent, `t
+ControlSend, ahk_parent, `t
+if WinActive("Minecraft")
+{
+   SendInput, %SEED%
+}
+else
+{
+   SetKeyDelay, 1
+   ControlSend, ahk_parent, %SEED%
+   SetKeyDelay, %keyDelay%
+}
+if WinActive("Minecraft")
+{
+   Send, +`t
+}
+else
+{
+   ControlSend, ahk_parent, {Shift down}{Tab}{Shift up}
+}
+if WinActive("Minecraft")
+{
+   Send, +`t
+}
+else
+{
+   ControlSend, ahk_parent, {Shift down}{Tab}{Shift up}
+}
+ControlSend, ahk_parent, {enter}
 }
 
 ExitWorld()
 {
-   send {Esc}+{Tab}{Enter} 
+   Send, {Esc}+{Tab}{Enter} 
 }
 
 SetKeyDelay , %keyDelay%
@@ -160,7 +180,7 @@ PgUp:: ; This is where the keybind for (re)creating an SSG world is set.
    WinGetPos, X, Y, W, H, Minecraft
    WinGetActiveTitle, Title
    IfNotInString Title, player ; Determine if we are already in a world.
-      CreateWorld(W, H)
+      CreateWorld()
    else {
       ExitWorld()
       Loop {
@@ -172,7 +192,7 @@ PgUp:: ; This is where the keybind for (re)creating an SSG world is set.
                IfWinActive, Minecraft 
                {
 		Sleep, 100
-                  CreateWorld(W, H)
+                  CreateWorld()
                   break
                }
             }
@@ -185,7 +205,7 @@ PgDn:: ; This is where the keybind for (re)creating an SSG world and deleting th
    WinGetPos, X, Y, W, H, Minecraft
    WinGetActiveTitle, Title
    IfNotInString Title, player ; Determine if we are already in a world.
-      DeleteAndCreateWorld(W, H)
+      DeleteAndCreateWorld()
    else {
       ExitWorld()
       Loop {
@@ -197,7 +217,7 @@ PgDn:: ; This is where the keybind for (re)creating an SSG world and deleting th
                IfWinActive, Minecraft 
                {
 		Sleep, 100
-                  DeleteAndCreateWorld(W, H)
+                  DeleteAndCreateWorld()
                   break
                }
             }
