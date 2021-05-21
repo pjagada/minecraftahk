@@ -1,6 +1,5 @@
 ; Minecraft Reset Script (SET SEED version)
-; Author:   onvo
-; Edited by SLTRR, DesktopFolder, Peej, and others
+; Authors:  onvo, SLTRR, DesktopFolder, Peej, and _D4rkS0ul_
 ; To use this script, make sure you have autohotkey installed (autohotkey.com), then right click on the script file, and click "Run Script."
 ; If you make any changes to the script by right clicking and clicking "Edit Script," make sure to reload the script by right clicking on the logo in your taskbar and clicking "Reload Script."
 
@@ -13,14 +12,14 @@
 ;   5) To open to LAN and make the dragon perch (make sure you're not in an inventory or already paused), press "End"
 ;   6) To change the "PgDn" and "PgUp" and "Home" and "End," scroll down to the bottom of this script, change the character before the double colon "::", and reload the script.
 ;      https://www.autohotkey.com/docs/KeyList.htm Here are a list of the keys you can use.
-;   7) If you want to use a different seed or change the difficulty, scroll down to the Options and you can change those.
+;   7) If you want to use a different seed, change the difficulty, or change the world name, scroll down to the Options and you can change those.
 ;   8) If you are in a minecraft world and inside a menu or inventory, close that menu/inventory before activating the script (otherwise, the macro may not function properly).
 ;      The macro that creates a new world only works from the title screen or from a previous world (unpaused and not in an inventory).
 ;   9) There have been a lot of verification problems of the world list screen not appearing because of the lag it takes to show that screen when you have a lot of worlds, even with a long key delay.
 ;      This script has a feature that can counter that problem by waiting for the title screen to go away and for the world list screen to appear before proceeding with the keypresses.
 
 ; Troubleshooting:
-;   There can sometimes be an issue with DirectX and the PixelSearch command. This can sometimes cause two problems:
+;   There can sometimes be an issue with the PixelSearch command. This can sometimes cause two problems:
 ;	1) When resetting from a previous world, the program won't register the title screen, so it will never create a new world.
 ;          Unfortunately, there currently isn't a workaround, so you'll just have to first go to title screen by pressing "Home," and then you can press "PgUp" or "PgDn" to create a new world.
 ;	2) This also messes up the WaitForWorldList function, so if you're having an issue with that, you unfortunately won't be able to use that feature.
@@ -34,7 +33,13 @@ SetWorkingDir %A_ScriptDir%
 ; Options:
 global difficulty := "Easy" ; Set difficulty here. Options: "Peaceful" "Easy" "Normal" "Hard" "Hardcore"
 global SEED := 2483313382402348964 ; Default seed is the current Any% SSG 1.16 seed, you can change it to whatever seed you want.
-global worldName := "New World" ; you can name the world whatever you want, put the name inside the quotation marks
+
+global countAttempts := "Yes" ; Change this to "Yes" if you would like the world name to include the attempt number, otherwise, keep it as "No"
+global worldName := "" ; you can name the world whatever you want, put the name inside the quotation marks.
+                                ; If you selected "Yes" in the above option to counting attempts, this name will be the prefix.
+                                ; For example, if you leave this as "New World" and you're on attempt 343, then the world will be named "New World343"
+                                ; To just show the attempt number, change this variable to ""
+
 global keyDelay := 70 ; Change this value to increase/decrease delay between key presses. For your run to be verifiable, each of the three screens of world creation must be shown.
 		      ; An input delay of 70 ms is recommended to ensure this. To remove delay, set this value to 0. Warning: Doing so will likely make your runs unverifiable.
 global worldListWait := 1 ; Once world list screen appears, wait 1 ms and then proceed. (You actually don't need anything more than that since the keyDelay takes care of showing the screen for enough time, but you can increase this if you want)
@@ -120,7 +125,33 @@ if (worldName != "New World")
       ControlSend, ahk_parent, {Control down}
       ControlSend, ahk_parent, a
       ControlSend, ahk_parent, {Control up}
-      ControlSend, ahk_parent, %worldName%
+      if (worldName = "")
+      {
+         ControlSend, ahk_parent, {BackSpace}
+      }
+      else
+      {
+         ControlSend, ahk_parent, %worldName%
+      }
+      SetKeyDelay, %keyDelay%
+   }
+}
+if (countAttempts = "Yes")
+{
+   FileRead, WorldNumber, SSG_1_16.txt
+   FileDelete, SSG_1_16.txt
+   WorldNumber += 1
+   FileAppend, %WorldNumber%, SSG_1_16.txt
+   if WinActive("Minecraft")
+   {
+      Sleep, 1
+      SendInput, %WorldNumber%
+      Sleep, 1
+   }
+   else
+   {
+      SetKeyDelay, 1
+      ControlSend, ahk_parent, %WorldNumber%
       SetKeyDelay, %keyDelay%
    }
 }
