@@ -1,5 +1,5 @@
 ; Minecraft Reset Script (SET SEED version)
-; Authors:  onvo, SLTRR, DesktopFolder, Peej, and _D4rkS0ul_
+; Author:  Peej, with code taken from Jojoe77777, onvo, SLTRR, DesktopFolder, and _D4rkS0ul_
 ; To use this script, make sure you have autohotkey installed (autohotkey.com), then right click on the script file, and click "Run Script."
 ; If you make any changes to the script by right clicking and clicking "Edit Script," make sure to reload the script by right clicking on the logo in your taskbar and clicking "Reload Script."
 
@@ -19,31 +19,28 @@
 ;      This script has a feature that can counter that problem by waiting for the title screen to go away and for the world list screen to appear before proceeding with the keypresses.
 
 ; Troubleshooting:
-;   There can sometimes be an issue with the PixelSearch command. This can sometimes cause two problems:
-;	1) When resetting from a previous world, the program won't register the title screen, so it will never create a new world.
-;          Unfortunately, there currently isn't a workaround, so you'll just have to first go to title screen by pressing "Home," and then you can press "PgUp" or "PgDn" to create a new world.
-;	2) This also messes up the WaitForWorldList function, so if you're having an issue with that, you unfortunately won't be able to use that feature.
-;	   Scroll down to the Options section and change the worldListWait variable to 0 to disable that feature.
-;	   If you disable this feature, make sure that your key delay is long enough to show the world list screen even with the lag that tends to happen.
-;   These issues tend to happen more frequently for fullscreen users.
+;   There can sometimes be an issue with the PixelSearch command. This can cause the following problem:
+;	When resetting from a previous world, the program won't register the title screen, so it will never create a new world.
+;   Unfortunately, there currently isn't a workaround, so you'll just have to first go to title screen by pressing "Home," and then you can press "PgUp" or "PgDn" to create a new world.
+;   This issue tends to happen more frequently for fullscreen users.
  
 #NoEnv
 SetWorkingDir %A_ScriptDir%
 
 ; Options:
+global keyDelay := 70 ; Change this value to increase/decrease delay between key presses. For your run to be verifiable, each of the three screens of world creation must be shown.
+		      ; An input delay of 70 ms is recommended to ensure this. To remove delay, set this value to 0. Warning: Doing so will likely make your runs unverifiable.
+global worldListWait := 1000 ; The macro will wait for the world list screen before proceeding, but sometimes this feature doesn't work and it will just get stuck, especially if you use fullscreen, and always if you're tabbed out during this part.
+                            ; In that case, this number (in milliseconds) defines the hard limit that it will wait before proceeding. This number should basically just be a little longer than your world list screen showing lag.
+
 global difficulty := "Easy" ; Set difficulty here. Options: "Peaceful" "Easy" "Normal" "Hard" "Hardcore"
 global SEED := 2483313382402348964 ; Default seed is the current Any% SSG 1.16 seed, you can change it to whatever seed you want.
 
-global countAttempts := "Yes" ; Change this to "Yes" if you would like the world name to include the attempt number, otherwise, keep it as "No"
-global worldName := "" ; you can name the world whatever you want, put the name inside the quotation marks.
+global countAttempts := "No" ; Change this to "Yes" if you would like the world name to include the attempt number, otherwise, keep it as "No"
+global worldName := "New World" ; you can name the world whatever you want, put the name inside the quotation marks.
                                 ; If you selected "Yes" in the above option to counting attempts, this name will be the prefix.
                                 ; For example, if you leave this as "New World" and you're on attempt 343, then the world will be named "New World343"
                                 ; To just show the attempt number, change this variable to ""
-
-global keyDelay := 70 ; Change this value to increase/decrease delay between key presses. For your run to be verifiable, each of the three screens of world creation must be shown.
-		      ; An input delay of 70 ms is recommended to ensure this. To remove delay, set this value to 0. Warning: Doing so will likely make your runs unverifiable.
-global worldListWait := 1 ; Once world list screen appears, wait 1 ms and then proceed. (You actually don't need anything more than that since the keyDelay takes care of showing the screen for enough time, but you can increase this if you want)
-			   ; If your macro is getting stuck, change this to 0, but make sure that your key delay is long enough to show this world screen after accounting for the lag that tends to happen when showing that screen.
 
 Perch()
 {
@@ -65,23 +62,20 @@ Send, {enter}
 WaitForWorldList()
 {
    WinGetPos, X, Y, W, H, Minecraft
-Loop { ; Keep checking until world list screen has appeared
-  PixelSearch, Px, Py, 0, 0, W, H, 0x00FCFC, 1, Fast
-  if (ErrorLevel) {
-	Sleep, %worldListWait% ;
-	break
-  }
-}
+   start := A_TickCount
+   elapsed := A_TickCount - start
+   while ((elapsed < worldListWait) && (ErrorLevel = 0))
+   {
+      PixelSearch, Px, Py, 0, 0, W, H, 0xADAFB7, 0, Fast
+      elapsed := A_TickCount - start
+   }
 }
 
 CreateWorld()
 {
 ControlSend, ahk_parent, `t
 ControlSend, ahk_parent, {enter}
-if (worldListWait)
-{
-  WaitForWorldList()
-}
+WaitForWorldList()
 CreateNewWorld()
 }
 
@@ -89,10 +83,7 @@ DeleteAndCreateWorld()
 {
 ControlSend, ahk_parent, `t
 ControlSend, ahk_parent, {enter}
-if (worldListWait)
-{
-  WaitForWorldList()
-}
+WaitForWorldList()
 ControlSend, ahk_parent, `t
 ControlSend, ahk_parent, `t
 ControlSend, ahk_parent, `t
@@ -237,12 +228,12 @@ PgUp:: ; This is where the keybind for (re)creating an SSG world is set.
       Loop {
          IfWinActive, Minecraft 
          {
-            PixelSearch, Px, Py, 0, 0, W, H, 0x00FCFC, 1, Fast ; Waits to make sure we have properly exited the world.
+            PixelSearch, Px, Py, 0, 0, W, H, 0xADAFB7, 0, Fast ; Waits to make sure we have properly exited the world.
             if (!ErrorLevel) {
                Sleep, 100
                IfWinActive, Minecraft 
                {
-		Sleep, 100
+                  Sleep, 100
                   CreateWorld()
                   break
                }
@@ -262,12 +253,12 @@ PgDn:: ; This is where the keybind for (re)creating an SSG world and deleting th
       Loop {
          IfWinActive, Minecraft 
          {
-            PixelSearch, Px, Py, 0, 0, W, H, 0x00FCFC, 1, Fast ; Waits to make sure we have properly exited the world.
+            PixelSearch, Px, Py, 0, 0, W, H, 0xADAFB7, 0, Fast ; Waits to make sure we have properly exited the world.
             if (!ErrorLevel) {
                Sleep, 100
                IfWinActive, Minecraft 
                {
-		Sleep, 100
+                  Sleep, 100
                   DeleteAndCreateWorld()
                   break
                }
