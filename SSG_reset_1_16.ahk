@@ -64,6 +64,7 @@ WaitForWorldList()
    WinGetPos, X, Y, W, H, Minecraft
    start := A_TickCount
    elapsed := A_TickCount - start
+   PixelSearch, Px, Py, 0, 0, W, H, 0xADAFB7, 0, Fast
    while ((elapsed < worldListWait) && (ErrorLevel = 0))
    {
       PixelSearch, Px, Py, 0, 0, W, H, 0xADAFB7, 0, Fast
