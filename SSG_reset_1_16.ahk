@@ -59,32 +59,45 @@ SendInput, data merge entity @e[type=ender_dragon,limit=1] {{}DragonPhase:2{}}
 Send, {enter}
 }
 
-WaitForWorldList()
+WaitForWorldList(previousErrorLevel)
 {
-   WinGetPos, X, Y, W, H, Minecraft
-   start := A_TickCount
-   elapsed := A_TickCount - start
-   PixelSearch, Px, Py, 0, 0, W, H, 0xADAFB7, 0, Fast
-   while ((elapsed < worldListWait) && (ErrorLevel = 0))
+   if (previousErrorLevel = 0)
    {
-      PixelSearch, Px, Py, 0, 0, W, H, 0xADAFB7, 0, Fast
+      WinGetPos, X, Y, W, H, Minecraft
+      start := A_TickCount
       elapsed := A_TickCount - start
+      PixelSearch, Px, Py, 0, 0, W, H, 0xADAFB7, 0, Fast
+      while ((elapsed < worldListWait) && (ErrorLevel = 0))
+      {
+         PixelSearch, Px, Py, 0, 0, W, H, 0xADAFB7, 0, Fast
+         elapsed := A_TickCount - start
+      }
    }
+   else
+   {
+      Sleep, worldListWait
+   }
+}
+
+EnterSingleplayer()
+{
+   ControlSend, ahk_parent, `t
+   WinGetPos, X, Y, W, H, Minecraft
+   PixelSearch, Px, Py, 0, 0, W, H, 0xADAFB7, 0, Fast
+   previousError := ErrorLevel
+   ControlSend, ahk_parent, {enter}
+   WaitForWorldList(previousError)
 }
 
 CreateWorld()
 {
-ControlSend, ahk_parent, `t
-ControlSend, ahk_parent, {enter}
-WaitForWorldList()
+EnterSingleplayer()
 CreateNewWorld()
 }
 
 DeleteAndCreateWorld()
 {
-ControlSend, ahk_parent, `t
-ControlSend, ahk_parent, {enter}
-WaitForWorldList()
+EnterSingleplayer()
 ControlSend, ahk_parent, `t
 ControlSend, ahk_parent, `t
 ControlSend, ahk_parent, `t
