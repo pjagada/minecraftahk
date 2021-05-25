@@ -52,13 +52,17 @@ global worldName := "New World" ; you can name the world whatever you want, put 
                                 ; For example, if you leave this as "New World" and you're on attempt 343, then the world will be named "New World343"
                                 ; To just show the attempt number, change this variable to ""
 
-CheckSavesDirectory()
+ShiftTab()
 {
-   FileRead, savesFolder, %savesDirectory%
-   if (ErrorLevel)
+   if WinActive("Minecraft")
    {
-      MsgBox, Saves directory is invalid. Right click on the file, click edit script, and enter a valid saves directorry, then run the script.
-      ExitApp
+      Send, +`t
+   }
+   else
+   {
+      SetKeyDelay, 1
+      ControlSend, ahk_parent, {Shift down}{Tab}{Shift up}
+      SetKeyDelay, %keyDelay%
    }
 }
 
@@ -230,22 +234,8 @@ else
    ControlSend, ahk_parent, %SEED%
    SetKeyDelay, %keyDelay%
 }
-if WinActive("Minecraft")
-{
-   Send, +`t
-}
-else
-{
-   ControlSend, ahk_parent, {Shift down}{Tab}{Shift up}
-}
-if WinActive("Minecraft")
-{
-   Send, +`t
-}
-else
-{
-   ControlSend, ahk_parent, {Shift down}{Tab}{Shift up}
-}
+ShiftTab()
+ShiftTab()
 ControlSend, ahk_parent, {enter}
 }
 
