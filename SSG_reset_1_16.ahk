@@ -1,5 +1,5 @@
-; Minecraft Reset Script (SET SEED version)
-; Author:  Peej, with help from jojoe77777, onvo, SLTRR, DesktopFolder, and _D4rkS0ul_
+; Minecraft Reset Script (set seed 1.16)
+; Author:  Peej, with help/code from jojoe77777, onvo, SLTRR, DesktopFolder, and _D4rkS0ul_
 ; Authors are not liable for any run rejections.
 ; To use this script, make sure you have autohotkey installed (autohotkey.com), then right click on the script file, and click "Run Script."
 ; If you make any changes to the script by right clicking and clicking "Edit Script," make sure to reload the script by right clicking on the logo in your taskbar and clicking "Reload Script."
@@ -25,6 +25,10 @@
 ;
 ;   Q: Why does it spend so long at the world list screen?
 ;   A: Go a few lines down and decrease the number after the words "global worldListWait := "
+;
+;   Q: It doesn't do anything when I click run script / Run script doesn't appear.
+;   A: Right click the file, click "Open with" -> "Choose another app" -> "More apps" -> "Look for another app on this PC," then find the AutoHotkey folder (likely in Program Files).
+;      Go into that folder, and double click on AutoHotkeyU64.exe. If that's not there, then reinstall AutoHotkey.
  
 #NoEnv
 SetWorkingDir %A_ScriptDir%
@@ -33,8 +37,9 @@ SetWorkingDir %A_ScriptDir%
 global savesDirectory := "C:\Users\prana\AppData\Roaming\mmc-stable-win32\MultiMC\instances\1.16.1\.minecraft\saves" ; input your minecraft saves directory here. It will probably start with "C:\Users..." and end with "\minecraft\saves"
 global keyDelay := 70 ; Change this value to increase/decrease delay between key presses. For your run to be verifiable, each of the three screens of world creation must be shown.
 		      ; An input delay of 70 ms is recommended to ensure this. To remove delay, set this value to 0. Warning: Doing so will likely make your runs unverifiable.
-global worldListWait := 500 ; The macro will wait for the world list screen before proceeding, but sometimes this feature doesn't work and it will just get stuck, especially if you use fullscreen, and always if you're tabbed out during this part.
-                            ; In that case, this number (in milliseconds) defines the hard limit that it will wait before proceeding. This number should basically just be a little longer than your world list screen showing lag.
+global worldListWait := 1000 ; The macro will wait for the world list screen to show before proceeding, but sometimes this feature doesn't work, especially if you use fullscreen, and always if you're tabbed out during this part.
+                            ; In that case, this number (in milliseconds) defines the hard limit that it will wait after clicking on "Singleplayer" before proceeding.
+                            ; This number should basically just be a little longer than your world list screen showing lag.
 
 global difficulty := "Easy" ; Set difficulty here. Options: "Peaceful" "Easy" "Normal" "Hard" "Hardcore"
 global SEED := 2483313382402348964 ; Default seed is the current Any% SSG 1.16 seed, you can change it to whatever seed you want.
@@ -79,12 +84,16 @@ WaitForWorldList(previousErrorLevel)
    if (previousErrorLevel = 0)
    {
       WinGetPos, X, Y, W, H, Minecraft
+      X1 := Floor(W / 2) - 1
+      Y1 := Floor(H / 25)
+      X2 := Ceil(W / 2) + 1
+      Y2 := Ceil(H / 3)
       start := A_TickCount
       elapsed := A_TickCount - start
-      PixelSearch, Px, Py, 0, 0, W, H, 0xADAFB7, 0, Fast
+      PixelSearch, Px, Py, X1, Y1, X2, Y2, 0xADAFB7, 0, Fast
       while ((elapsed < worldListWait) && (ErrorLevel = 0))
       {
-         PixelSearch, Px, Py, 0, 0, W, H, 0xADAFB7, 0, Fast
+         PixelSearch, Px, Py, X1, Y1, X2, Y2, 0xADAFB7, 0, Fast
          elapsed := A_TickCount - start
          Sleep, 20
       }
@@ -99,7 +108,11 @@ EnterSingleplayer()
 {
    ControlSend, ahk_parent, `t
    WinGetPos, X, Y, W, H, Minecraft
-   PixelSearch, Px, Py, 0, 0, W, H, 0xADAFB7, 0, Fast
+   X1 := Floor(W / 2) - 1
+   Y1 := Floor(H / 25)
+   X2 := Ceil(W / 2) + 1
+   Y2 := Ceil(H / 3)
+   PixelSearch, Px, Py, X1, Y1, X2, Y2, 0xADAFB7, 0, Fast
    previousError := ErrorLevel
    ControlSend, ahk_parent, {enter}
    WaitForWorldList(previousError)
@@ -285,12 +298,12 @@ SetKeyDelay , %keyDelay%
 
 #IfWinActive, Minecraft
 {
-PgUp:: ; This is where the keybind for (re)creating an SSG world is set.
+PgUp:: ; This is where the keybind for creating a world is set.
    DoEverything()
    CreateWorld()
 return
 
-PgDn:: ; This is where the keybind for (re)creating an SSG world and deleting the previous one is set.
+PgDn:: ; This is where the keybind for creating a world and deleting the previous one is set.
    DoEverything()
    DeleteAndCreateWorld()
 return
