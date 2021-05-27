@@ -20,7 +20,7 @@
 ;      This script has a feature that can counter that problem by waiting for the title screen to go away and for the world list screen to appear before proceeding with the keypresses.
 
 ; Troubleshooting:
-;   Q: When I reset from a previous world, why is it getting stuck at the title screen?
+;   Q: Why is it getting stuck at the title screen?
 ;   A: Check that your saves directory is spelled correctly.
 ;
 ;   Q: Why does it spend so long at the world list screen?
@@ -52,6 +52,19 @@ global worldName := "New World" ; you can name the world whatever you want, put 
                                 ; For example, if you leave this as "New World" and you're on attempt 343, then the world will be named "New World343"
                                 ; To just show the attempt number, change this variable to ""
 
+fastResetModStuff()
+{
+   modsFolder := StrReplace(savesDirectory, "saves", "mods")
+   Loop, Files, %modsFolder%\*.*, F
+   {
+      if(InStr(A_LoopFileName, "fast-reset"))
+      {
+         ShiftTab()
+         break
+      }
+   }
+}
+
 ShiftTab()
 {
    if WinActive("Minecraft")
@@ -69,10 +82,11 @@ ShiftTab()
 Perch()
 {
 Send, {Esc} ; pause
-Send, +`t
-Send, +`t
+ShiftTab()
+ShiftTab()
+fastResetModStuff()
 Send, {enter} ; open to LAN
-Send, +`t
+ShiftTab()
 Send, {enter} ; cheats on
 Send, `t
 Send, {enter} ; open to LAN
@@ -306,5 +320,3 @@ End:: ; This is where the keybind for opening to LAN and perching is set.
    Perch()
 return
 }
-
-
