@@ -8,7 +8,7 @@
 ;  The following only apply inside the Minecraft window:
 ;   1) When on the title screen, the "PgUp" key will create a world with the seed in the clipboard.
 ;   2) When in a previous world, "PgUp" will exit the world and then auto create another world. You must specify your saves directory down below for this to work.
-;   3) "PgDn" will do the same thing as "PgUp," but it will also delete the previous world.
+;   3) "PgDn" will do the same thing as "PgUp," but it will also move the previous world to another folder (or delete it if you have that option selected).
 ;   4) To just exit the world and not create another world, press "Home" on keyboard.
 ;   5) To change the "PgDn" and "PgUp" and "Home," scroll down to the bottom of this script, change the character before the double colon "::", and reload the script.
 ;      https://www.autohotkey.com/docs/KeyList.htm Here are a list of the keys you can use.
@@ -40,7 +40,7 @@ global worldListWait := 1000 ; The macro will wait for the world list screen to 
                             ; In that case, this number (in milliseconds) defines the hard limit that it will wait after clicking on "Singleplayer" before proceeding.
                             ; This number should basically just be a little longer than your world list screen showing lag.
 
-global difficulty := "Easy" ; Set difficulty here. Options: "Peaceful" "Easy" "Normal" "Hard" "Hardcore"
+global difficulty := "Normal" ; Set difficulty here. Options: "Peaceful" "Easy" "Normal" "Hard" "Hardcore"
 
 global countAttempts := "No" ; Change this to "Yes" if you would like the world name to include the attempt number, otherwise, keep it as "No"
                              ; The script will automatically create a text file to track your attempts starting from 1, but if you already have some attempts,
@@ -50,23 +50,7 @@ global worldName := "New World" ; you can name the world whatever you want, put 
                                 ; For example, if you leave this as "New World" and you're on attempt 343, then the world will be named "New World343"
                                 ; To just show the attempt number, change this variable to ""
 
-
-Perch()
-{
-Send, {Esc} ; pause
-Send, +`t
-Send, +`t
-Send, {enter} ; open to LAN
-Send, +`t
-Send, {enter} ; cheats on
-Send, `t
-Send, {enter} ; open to LAN
-Send, /
-Sleep, 50 ; You can lower this number or take it out completely if it adds up to over 50-60ish depending on your key delay.
-; Just make sure that this number plus your key delay is at least like 50-60 and it should work fine. This is because opening chat is tick based so you need some delay.
-SendInput, data merge entity @e[type=ender_dragon,limit=1] {{}DragonPhase:2{}}
-Send, {enter}
-}
+global previousWorldOption := "move" ; What to do with the previous world (either "delete" or "move") when the Page Down hotkey is used. If it says "move" then worlds will be moved to a folder called oldWorlds in your .minecraft folder
 
 WaitForWorldList(previousErrorLevel)
 {
@@ -113,25 +97,10 @@ EnterSingleplayer()
 CreateNewWorld()
 }
 
-DeleteAndCreateWorld()
-{
-EnterSingleplayer()
-ControlSend, ahk_parent, `t
-ControlSend, ahk_parent, `t
-ControlSend, ahk_parent, `t
-ControlSend, ahk_parent, `t
-ControlSend, ahk_parent, `t
-ControlSend, ahk_parent, {enter}
-ControlSend, ahk_parent, `t
-ControlSend, ahk_parent, {enter}
-CreateNewWorld()
-}
-
 CreateNewWorld()
 {
-ControlSend, ahk_parent, `t
-ControlSend, ahk_parent, `t
-ControlSend, ahk_parent, `t
+ShiftTab()
+ShiftTab()
 ControlSend, ahk_parent, {enter}
 if (worldName != "New World")
 {
@@ -175,36 +144,45 @@ if (countAttempts = "Yes")
       SetKeyDelay, %keyDelay%
    }
 }
-ControlSend, ahk_parent, `t
-if (difficulty = "Hardcore")
+if (difficulty = "Normal")
 {
-  ControlSend, ahk_parent, {enter}
+   ShiftTab()
+   ShiftTab()
+   ShiftTab()
 }
-ControlSend, ahk_parent, `t
-if ((difficulty != "Normal") && (difficulty != "Hardcore"))
+else
 {
-  ControlSend, ahk_parent, {enter}
-  if (difficulty != "Hard")
-  {
-    ControlSend, ahk_parent, {enter}
-    if (difficulty != "Peaceful")
-    {
+   ControlSend, ahk_parent, `t
+   if (difficulty = "Hardcore")
+   {
       ControlSend, ahk_parent, {enter}
-      if (difficulty != "Easy")
+   }
+   ControlSend, ahk_parent, `t
+   if (difficulty != "Hardcore")
+   {
+      ControlSend, ahk_parent, {enter}
+      if (difficulty != "Hard")
       {
-        MsgBox, Difficulty entered is invalid. Please check your spelling and enter a valid difficulty. Options are "Peaceful" "Easy" "Normal" "Hard" or "Hardcore"
-	ExitApp
+         ControlSend, ahk_parent, {enter}
+         if (difficulty != "Peaceful")
+         {
+            ControlSend, ahk_parent, {enter}
+            if (difficulty != "Easy")
+            {
+               MsgBox, Difficulty entered is invalid. Please check your spelling and enter a valid difficulty. Options are "Peaceful" "Easy" "Normal" "Hard" or "Hardcore"
+               ExitApp
+            }
+         }
       }
-    }
-  }
+   }
+   if (difficulty != "Hardcore")
+   {
+      ControlSend, ahk_parent, `t
+      ControlSend, ahk_parent, `t
+   }
+   ControlSend, ahk_parent, `t
+   ControlSend, ahk_parent, `t
 }
-if (difficulty != "Hardcore")
-{
-  ControlSend, ahk_parent, `t
-  ControlSend, ahk_parent, `t
-}
-ControlSend, ahk_parent, `t
-ControlSend, ahk_parent, `t
 ControlSend, ahk_parent, {enter}
 ControlSend, ahk_parent, `t
 ControlSend, ahk_parent, `t
@@ -240,7 +218,9 @@ ShiftTab()
 
 ExitWorld()
 {
-   Send, {Esc}+{Tab}{Enter} 
+   ControlSend, ahk_parent, {Esc}
+   ShiftTab()
+   ControlSend, ahk_parent, {Enter} 
 }
 
 getMostRecentFile()
@@ -260,29 +240,51 @@ getMostRecentFile()
 			mostRecentFile := A_LoopFileLongPath
 		}
 	}
-   lockFile := mostRecentFile . "\session.lock"
-   return (lockFile)
+   recentFile := mostRecentFile
+   return (recentFile)
 }
 
 DoEverything()
 {
-	WinGetActiveTitle, Title
-	IfInString Title, player
-    ExitWorld()
-	Loop
-	{
-		lockFile := getMostRecentFile()
-		FileRead, sessionlockfile, %lockFile%
-		Sleep, 50
-		if (ErrorLevel = 0)
-		{
-			Sleep, 100
-			break
-		}
-	}
-   
+   WinGetActiveTitle, Title
+   IfInString Title, player
+   ExitWorld()
+   Loop
+   {
+      lastWorld := getMostRecentFile()
+      lockFile := lastWorld . "\session.lock"
+      FileRead, sessionlockfile, %lockFile%
+      Sleep, 20
+      if (ErrorLevel = 0)
+      {
+         Sleep, %keyDelay%
+         break
+      }
+   }
+   return (lastWorld)
 }
 
+DeleteOrMove(lastWorld)
+{
+   if (previousWorldOption = "delete")
+      FileRemoveDir, %lastWorld%, 1
+   else if(previousWorldOption = "move")
+   {
+      newDir := StrReplace(savesDirectory, "saves", "oldWorlds")
+      if !FileExist(newDir)
+      {
+         FileCreateDir, %newDir%
+      }
+      newLocation := StrReplace(lastWorld, "saves", "oldWorlds")
+      FileCopyDir, %lastWorld%, %newLocation%%A_Now%
+      FileRemoveDir, %lastWorld%, 1
+   }
+   else
+   {
+      MsgBox, Choose a valid option for what to do with the previous world. Go to the Options section of this script and choose either "move" or "delete" after the words "global previousWorldOption := "
+      ExitApp
+   }
+}
 SetKeyDelay , %keyDelay%
 
 #IfWinActive, Minecraft
@@ -292,9 +294,10 @@ PgUp:: ; This is where the keybind for creating a world is set.
    CreateWorld()
 return
 
-PgDn:: ; This is where the keybind for creating a world and deleting the previous one is set.
-   DoEverything()
-   DeleteAndCreateWorld()
+PgDn:: ; This is where the keybind for creating a world and deleting/moving the previous one is set.
+   lastWorld := DoEverything()
+   CreateWorld()
+   DeleteOrMove(lastWorld)
 return
 
 Home:: ; This is where the keybind for exiting a world is set.
