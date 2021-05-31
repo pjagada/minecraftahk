@@ -168,11 +168,6 @@ else
     if (difficulty != "Peaceful")
     {
       ControlSend, ahk_parent, {enter}
-      if (difficulty != "Easy")
-      {
-        MsgBox, Difficulty entered is invalid. Please check your spelling and enter a valid difficulty. Options are "Peaceful" "Easy" "Normal" "Hard" or "Hardcore"
-	ExitApp
-      }
     }
   }
   ShiftTab()
@@ -260,11 +255,22 @@ DeleteOrMove(lastWorld)
       FileCopyDir, %lastWorld%, %newLocation%%A_Now%
       FileRemoveDir, %lastWorld%, 1
    }
-   else
-   {
-      MsgBox, Choose a valid option for what to do with the previous world. Go to the Options section of this script and choose either "move" or "delete" after the words "global previousWorldOption := "
-      ExitApp
-   }
+}
+
+if !FileExist(savesDirectory)
+{
+   MsgBox, Your saves directory is invalid. Right click on the script file, click edit script, and put the correct saves directory, then save the script and run it again.
+   ExitApp
+}
+if ((previousWorldOption != "move") and (previousWorldOption != "delete"))
+{
+   MsgBox, Choose a valid option for what to do with the previous world. Go to the Options section of this script and choose either "move" or "delete" after the words "global previousWorldOption := "
+   ExitApp
+}
+if ((difficulty != "Peaceful") and (difficulty != "Easy") and (difficulty != "Normal") and (difficulty != "Hard") and (difficulty != "Hardcore"))
+{
+   MsgBox, Difficulty entered is invalid. Please check your spelling and enter a valid difficulty. Options are "Peaceful" "Easy" "Normal" "Hard" or "Hardcore"
+   ExitApp
 }
 
 SetKeyDelay , %keyDelay%

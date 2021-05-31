@@ -20,9 +20,6 @@
 ;      This script has a feature that can counter that problem by waiting for the title screen to go away and for the world list screen to appear before proceeding with the keypresses.
 
 ; Troubleshooting:
-;   Q: Why is it getting stuck at the title screen?
-;   A: Check that your saves directory is spelled correctly.
-;
 ;   Q: Why does it spend so long at the world list screen?
 ;   A: Go a few lines down and decrease the number after the words "global worldListWait := "
 ;
@@ -214,11 +211,6 @@ else
          if (difficulty != "Peaceful")
          {
             ControlSend, ahk_parent, {enter}
-            if (difficulty != "Easy")
-            {
-               MsgBox, Difficulty entered is invalid. Please check your spelling and enter a valid difficulty. Options are "Peaceful" "Easy" "Normal" "Hard" or "Hardcore"
-               ExitApp
-            }
          }
       }
    }
@@ -312,17 +304,27 @@ DeleteOrMove(lastWorld)
       FileCopyDir, %lastWorld%, %newLocation%%A_Now%
       FileRemoveDir, %lastWorld%, 1
    }
-   else
-   {
-      MsgBox, Choose a valid option for what to do with the previous world. Go to the Options section of this script and choose either "move" or "delete" after the words "global previousWorldOption := "
-      ExitApp
-   }
 }
 
 Test()
 {
 }
 
+if !FileExist(savesDirectory)
+{
+   MsgBox, Your saves directory is invalid. Right click on the script file, click edit script, and put the correct saves directory, then save the script and run it again.
+   ExitApp
+}
+if ((previousWorldOption != "move") and (previousWorldOption != "delete"))
+{
+   MsgBox, Choose a valid option for what to do with the previous world. Go to the Options section of this script and choose either "move" or "delete" after the words "global previousWorldOption := "
+   ExitApp
+}
+if ((difficulty != "Peaceful") and (difficulty != "Easy") and (difficulty != "Normal") and (difficulty != "Hard") and (difficulty != "Hardcore"))
+{
+   MsgBox, Difficulty entered is invalid. Please check your spelling and enter a valid difficulty. Options are "Peaceful" "Easy" "Normal" "Hard" or "Hardcore"
+   ExitApp
+}
 
 SetKeyDelay , %keyDelay%
 
