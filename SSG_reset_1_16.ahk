@@ -49,7 +49,7 @@ global worldName := "New World" ; you can name the world whatever you want, put 
                                 ; For example, if you leave this as "New World" and you're on attempt 343, then the world will be named "New World343"
                                 ; To just show the attempt number, change this variable to ""
 
-global previousWorldOption := "delete" ; What to do with the previous world (either "delete" or "move") when the Page Down hotkey is used. If it says "move" then worlds will be moved to a folder called oldWorlds in your .minecraft folder
+global previousWorldOption := "move" ; What to do with the previous world (either "delete" or "move") when the Page Down hotkey is used. If it says "move" then worlds will be moved to a folder called oldWorlds in your .minecraft folder
 
 fastResetModStuff()
 {
@@ -112,7 +112,6 @@ WaitForWorldList(previousErrorLevel)
       {
          PixelSearch, Px, Py, X1, Y1, X2, Y2, 0xADAFB7, 0, Fast
          elapsed := A_TickCount - start
-         Sleep, 20
       }
    }
    else

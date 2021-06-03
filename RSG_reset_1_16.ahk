@@ -19,9 +19,6 @@
 ;      This script has a feature that can counter that problem by waiting for the title screen to go away and for the world list screen to appear before proceeding with the keypresses.
 
 ; Troubleshooting:
-;   Q: When I reset from a previous world, why is it getting stuck at the title screen?
-;   A: Check that your saves directory is spelled correctly.
-;
 ;   Q: Why does it spend so long at the world list screen?
 ;   A: Go a few lines down and decrease the number after the words "global worldListWait := "
 ;
@@ -68,7 +65,6 @@ WaitForWorldList(previousErrorLevel)
       {
          PixelSearch, Px, Py, X1, Y1, X2, Y2, 0xADAFB7, 0, Fast
          elapsed := A_TickCount - start
-         Sleep, 20
       }
    }
    else
