@@ -1,5 +1,5 @@
 ; Minecraft Reset Script (set seed 1.16)
-; Author:  Peej, with help/code from jojoe77777, onvo, SLTRR, DesktopFolder, and _D4rkS0ul_
+; Author:  Peej, with help/code from jojoe77777, onvo, SLTRR, DesktopFolder, Four, and _D4rkS0ul_
 ; Authors are not liable for any run rejections.
 ; To use this script, make sure you have autohotkey installed (autohotkey.com), then right click on the script file, and click "Run Script."
 ; If you make any changes to the script by right clicking and clicking "Edit Script," make sure to reload the script by right clicking on the logo in your taskbar and clicking "Reload Script."
@@ -32,8 +32,7 @@ SetWorkingDir %A_ScriptDir%
 
 ; Options:
 global savesDirectory := "C:\Users\prana\AppData\Roaming\mmc-stable-win32\MultiMC\instances\1.16.1\.minecraft\saves" ; input your minecraft saves directory here. It will probably start with "C:\Users..." and end with "\minecraft\saves"
-global keyDelay := 70 ; Change this value to increase/decrease delay between key presses. For your run to be verifiable, each of the three screens of world creation must be shown.
-		      ; An input delay of 70 ms is recommended to ensure this. To remove delay, set this value to 0. Warning: Doing so will likely make your runs unverifiable.
+global screenDelay := 70 ; Change this value to increase/decrease the number of time (in milliseconds) that each world creation screen is held for. For your run to be verifiable, each of the three screens of world creation must be shown.
 global worldListWait := 1000 ; The macro will wait for the world list screen to show before proceeding, but sometimes this feature doesn't work, especially if you use fullscreen, and always if you're tabbed out during this part.
                             ; In that case, this number (in milliseconds) defines the hard limit that it will wait after clicking on "Singleplayer" before proceeding.
                             ; This number should basically just be a little longer than your world list screen showing lag.
@@ -49,7 +48,9 @@ global worldName := "New World" ; you can name the world whatever you want, put 
                                 ; For example, if you leave this as "New World" and you're on attempt 343, then the world will be named "New World343"
                                 ; To just show the attempt number, change this variable to ""
 
-global previousWorldOption := "move" ; What to do with the previous world (either "delete" or "move") when the Page Down hotkey is used. If it says "move" then worlds will be moved to a folder called oldWorlds in your .minecraft folder
+global previousWorldOption := "delete" ; What to do with the previous world (either "delete" or "move") when the Page Down hotkey is used. If it says "move" then worlds will be moved to a folder called oldWorlds in your .minecraft folder
+
+global inputMethod := "key" ; either "click" or "key"
 
 fastResetModStuff()
 {
@@ -58,42 +59,47 @@ fastResetModStuff()
    {
       if(InStr(A_LoopFileName, "fast-reset"))
       {
-         ShiftTab()
+         ShiftTab(1)
          break
       }
    }
 }
 
-ShiftTab()
+ShiftTab(n)
 {
    if WinActive("Minecraft")
    {
-      Send, +`t
+      Loop, %n%
+      {
+         Send, +`t
+      }
    }
    else
    {
-      SetKeyDelay, 1
-      ControlSend, ahk_parent, {Shift down}{Tab}{Shift up}
-      SetKeyDelay, %keyDelay%
+      ControlSend, ahk_parent, {Shift down}
+      Loop, %n%
+      {
+         ControlSend, ahk_parent, {Tab}
+      }
+      ControlSend, ahk_parent, {Shift up}
    }
 }
 
 Perch()
 {
-Send, {Esc} ; pause
-ShiftTab()
-ShiftTab()
-fastResetModStuff()
-Send, {enter} ; open to LAN
-ShiftTab()
-Send, {enter} ; cheats on
-Send, `t
-Send, {enter} ; open to LAN
-Send, /
-Sleep, 50 ; You can lower this number or take it out completely if it adds up to over 50-60ish depending on your key delay.
-; Just make sure that this number plus your key delay is at least like 50-60 and it should work fine. This is because opening chat is tick based so you need some delay.
-SendInput, data merge entity @e[type=ender_dragon,limit=1] {{}DragonPhase:2{}}
-Send, {enter}
+   Send, {Esc} ; pause
+   ShiftTab(1)
+   ShiftTab(1)
+   fastResetModStuff()
+   Send, {enter} ; open to LAN
+   ShiftTab(1)
+   Send, {enter} ; cheats on
+   Send, `t
+   Send, {enter} ; open to LAN
+   Send, /
+   Sleep, 70
+   SendInput, data merge entity @e[type=ender_dragon,limit=1] {{}DragonPhase:2{}}
+   Send, {enter}
 }
 
 WaitForWorldList(previousErrorLevel)
@@ -122,128 +128,153 @@ WaitForWorldList(previousErrorLevel)
 
 EnterSingleplayer()
 {
-   ControlSend, ahk_parent, `t
-   WinGetPos, X, Y, W, H, Minecraft
-   X1 := Floor(W / 2) - 1
-   Y1 := Floor(H / 25)
-   X2 := Ceil(W / 2) + 1
-   Y2 := Ceil(H / 3)
-   PixelSearch, Px, Py, X1, Y1, X2, Y2, 0xADAFB7, 0, Fast
-   previousError := ErrorLevel
-   ControlSend, ahk_parent, {enter}
+   Sleep, %screenDelay%
+   if (inputMethod = "key")
+   {
+      ControlSend, ahk_parent, `t
+      WinGetPos, X, Y, W, H, Minecraft
+      X1 := Floor(W / 2) - 1
+      Y1 := Floor(H / 25)
+      X2 := Ceil(W / 2) + 1
+      Y2 := Ceil(H / 3)
+      PixelSearch, Px, Py, X1, Y1, X2, Y2, 0xADAFB7, 0, Fast
+      previousError := ErrorLevel
+      ControlSend, ahk_parent, {enter}
+   }
+   else
+   {
+   }
    WaitForWorldList(previousError)
 }
 
 CreateWorld()
 {
-EnterSingleplayer()
-CreateNewWorld()
+   EnterSingleplayer()
+   WorldListScreen()
+   CreateNewWorldScreen()
+   MoreWorldOptionsScreen()
 }
 
-CreateNewWorld()
-{
-ShiftTab()
-ShiftTab()
-ControlSend, ahk_parent, {enter}
-if (worldName != "New World")
+WorldListScreen()
 {
    if WinActive("Minecraft")
    {
-      SendInput, ^a
-      Sleep, 1
-      SendInput, %worldName%
-      Sleep, 1
+      ShiftTab(2)
    }
    else
    {
-      SetKeyDelay, 1
-      ControlSend, ahk_parent, {Control down}
-      ControlSend, ahk_parent, a
-      ControlSend, ahk_parent, {Control up}
-      ControlSend, ahk_parent, {BackSpace}
-      ControlSend, ahk_parent, %worldName%
-      SetKeyDelay, %keyDelay%
+      ControlSend, ahk_parent, `t
+      ControlSend, ahk_parent, `t
+      ControlSend, ahk_parent, `t
    }
+   Sleep, %screenDelay%
+   ControlSend, ahk_parent, {enter}
 }
-if (countAttempts = "Yes")
+
+CreateNewWorldScreen()
 {
-   FileRead, WorldNumber, SSG_1_16.txt
-   if (ErrorLevel)
-      WorldNumber = 0
-   else
-      FileDelete, SSG_1_16.txt
-   WorldNumber += 1
-   FileAppend, %WorldNumber%, SSG_1_16.txt
-   if WinActive("Minecraft")
+   NameWorld()
+   if (difficulty = "Normal")
    {
-      Sleep, 1
-      SendInput, %WorldNumber%
-      Sleep, 1
+      ShiftTab(3)
    }
    else
    {
-      SetKeyDelay, 1
-      ControlSend, ahk_parent, %WorldNumber%
-      SetKeyDelay, %keyDelay%
-   }
-}
-if (difficulty = "Normal")
-{
-   ShiftTab()
-   ShiftTab()
-   ShiftTab()
-}
-else
-{
-   ControlSend, ahk_parent, `t
-   if (difficulty = "Hardcore")
-   {
-      ControlSend, ahk_parent, {enter}
-   }
-   ControlSend, ahk_parent, `t
-   if (difficulty != "Hardcore")
-   {
-      ControlSend, ahk_parent, {enter}
-      if (difficulty != "Hard")
+      ControlSend, ahk_parent, `t
+      if (difficulty = "Hardcore")
       {
          ControlSend, ahk_parent, {enter}
-         if (difficulty != "Peaceful")
+      }
+      ControlSend, ahk_parent, `t
+      if (difficulty != "Hardcore")
+      {
+         ControlSend, ahk_parent, {enter}
+         if (difficulty != "Hard")
          {
             ControlSend, ahk_parent, {enter}
+            if (difficulty != "Peaceful")
+            {
+               ControlSend, ahk_parent, {enter}
+            }
          }
       }
+      if (difficulty != "Hardcore")
+      {
+         ControlSend, ahk_parent, `t
+         ControlSend, ahk_parent, `t
+      }
+      ControlSend, ahk_parent, `t
+      ControlSend, ahk_parent, `t
    }
-   if (difficulty != "Hardcore")
+   Sleep, %screenDelay%
+   ControlSend, ahk_parent, {enter}
+}
+
+NameWorld()
+{
+   if (worldName != "New World")
    {
-      ControlSend, ahk_parent, `t
-      ControlSend, ahk_parent, `t
+      if WinActive("Minecraft")
+      {
+         SendInput, ^a
+         Sleep, 1
+         SendInput, %worldName%
+         Sleep, 1
+      }
+      else
+      {
+         ControlSend, ahk_parent, {Control down}
+         ControlSend, ahk_parent, a
+         ControlSend, ahk_parent, {Control up}
+         ControlSend, ahk_parent, {BackSpace}
+         ControlSend, ahk_parent, %worldName%
+      }
    }
+   if (countAttempts = "Yes")
+   {
+      FileRead, WorldNumber, SSG_1_16.txt
+      if (ErrorLevel)
+         WorldNumber = 0
+      else
+         FileDelete, SSG_1_16.txt
+      WorldNumber += 1
+      FileAppend, %WorldNumber%, SSG_1_16.txt
+      if WinActive("Minecraft")
+      {
+         Sleep, 1
+         SendInput, %WorldNumber%
+         Sleep, 1
+      }
+      else
+      {
+         ControlSend, ahk_parent, %WorldNumber%
+      }
+   }
+}
+
+MoreWorldOptionsScreen()
+{
    ControlSend, ahk_parent, `t
    ControlSend, ahk_parent, `t
-}
-ControlSend, ahk_parent, {enter}
-ControlSend, ahk_parent, `t
-ControlSend, ahk_parent, `t
-ControlSend, ahk_parent, `t
-if WinActive("Minecraft")
-{
-   SendInput, %SEED%
-}
-else
-{
-   SetKeyDelay, 1
-   ControlSend, ahk_parent, %SEED%
-   SetKeyDelay, %keyDelay%
-}
-ShiftTab()
-ShiftTab()
-ControlSend, ahk_parent, {enter}
+   ControlSend, ahk_parent, `t
+   if WinActive("Minecraft")
+   {
+      SendInput, %SEED%
+   }
+   else
+   {
+      ControlSend, ahk_parent, %SEED%
+   }
+   ShiftTab(2)
+   Sleep, %screenDelay%
+   ControlSend, ahk_parent, {enter}
 }
 
 ExitWorld()
 {
    ControlSend, ahk_parent, {Esc}
-   ShiftTab()
+   Sleep, 1000
+   ShiftTab(1)
    ControlSend, ahk_parent, {Enter} 
 }
 
@@ -281,7 +312,7 @@ DoEverything()
       Sleep, 20
       if (ErrorLevel = 0)
       {
-         Sleep, %keyDelay%
+         Sleep, %screenDelay%
          break
       }
    }
@@ -309,7 +340,7 @@ Test()
 {
 }
 
-if !FileExist(savesDirectory)
+if ((!FileExist(savesDirectory)) or (!InStr(savesDirectory, ".minecraft\saves")))
 {
    MsgBox, Your saves directory is invalid. Right click on the script file, click edit script, and put the correct saves directory, then save the script and run it again.
    ExitApp
@@ -324,8 +355,13 @@ if ((difficulty != "Peaceful") and (difficulty != "Easy") and (difficulty != "No
    MsgBox, Difficulty entered is invalid. Please check your spelling and enter a valid difficulty. Options are "Peaceful" "Easy" "Normal" "Hard" or "Hardcore"
    ExitApp
 }
+if ((inputMethod != "key") and (inputMethod != "click"))
+{
+   MsgBox, Choose a valid option for what input method to use. Go to the Options section of this script and choose either "key" or "click" after the words "global inputMethod := "
+   ExitApp
+}
 
-SetKeyDelay , %keyDelay%
+SetKeyDelay , 1
 
 #IfWinActive, Minecraft
 {
