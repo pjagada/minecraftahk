@@ -32,7 +32,7 @@ SetWorkingDir %A_ScriptDir%
 
 ; Options:
 global savesDirectory := "C:\Users\prana\AppData\Roaming\mmc-stable-win32\MultiMC\instances\1.16.1\.minecraft\saves" ; input your minecraft saves directory here. It will probably start with "C:\Users..." and end with "\minecraft\saves"
-global screenDelay := 70 ; Change this value to increase/decrease the number of time (in milliseconds) that each world creation screen is held for. For your run to be verifiable, each of the three screens of world creation must be shown.
+global screenDelay := 10 ; Change this value to increase/decrease the number of time (in milliseconds) that each world creation screen is held for. For your run to be verifiable, each of the three screens of world creation must be shown.
 global worldListWait := 1000 ; The macro will wait for the world list screen to show before proceeding, but sometimes this feature doesn't work, especially if you use fullscreen, and always if you're tabbed out during this part.
                             ; In that case, this number (in milliseconds) defines the hard limit that it will wait after clicking on "Singleplayer" before proceeding.
                             ; This number should basically just be a little longer than your world list screen showing lag.
@@ -143,6 +143,14 @@ EnterSingleplayer()
    }
    else
    {
+      WinGetPos, X, Y, W, H, Minecraft
+      X1 := Floor(W / 2) - 1
+      Y1 := Floor(H / 25)
+      X2 := Ceil(W / 2) + 1
+      Y2 := Ceil(H / 3)
+      PixelSearch, Px, Py, X1, Y1, X2, Y2, 0xADAFB7, 0, Fast
+      previousError := ErrorLevel
+      MouseClick, L, W * 963 // 1936, H * 515 // 1056, 1
    }
    WaitForWorldList(previousError)
 }
@@ -157,57 +165,106 @@ CreateWorld()
 
 WorldListScreen()
 {
-   if WinActive("Minecraft")
+   if (inputMethod = "key")
    {
-      ShiftTab(2)
+      if WinActive("Minecraft")
+      {
+         ShiftTab(2)
+      }
+      else
+      {
+         ControlSend, ahk_parent, `t
+         ControlSend, ahk_parent, `t
+         ControlSend, ahk_parent, `t
+      }
+      Sleep, %screenDelay%
+      ControlSend, ahk_parent, {enter}
    }
    else
    {
-      ControlSend, ahk_parent, `t
-      ControlSend, ahk_parent, `t
-      ControlSend, ahk_parent, `t
+      Sleep, %screenDelay%
+      WinGetPos, X, Y, W, H, Minecraft
+      MouseClick, L, W * 1282 // 1936, H * 879 // 1056, 1
    }
-   Sleep, %screenDelay%
-   ControlSend, ahk_parent, {enter}
 }
 
 CreateNewWorldScreen()
 {
    NameWorld()
-   if (difficulty = "Normal")
+   if (inputMethod = "key")
    {
-      ShiftTab(3)
+      if (difficulty = "Normal")
+      {
+         ShiftTab(3)
+      }
+      else
+      {
+         ControlSend, ahk_parent, `t
+         if (difficulty = "Hardcore")
+         {
+            ControlSend, ahk_parent, {enter}
+         }
+         ControlSend, ahk_parent, `t
+         if (difficulty != "Hardcore")
+         {
+            ControlSend, ahk_parent, {enter}
+            if (difficulty != "Hard")
+            {
+               ControlSend, ahk_parent, {enter}
+               if (difficulty != "Peaceful")
+               {
+                  ControlSend, ahk_parent, {enter}
+               }
+            }
+         }
+         if (difficulty != "Hardcore")
+         {
+            ControlSend, ahk_parent, `t
+            ControlSend, ahk_parent, `t
+         }
+         ControlSend, ahk_parent, `t
+         ControlSend, ahk_parent, `t
+      }
+      Sleep, %screenDelay%
+      ControlSend, ahk_parent, {enter}
    }
    else
    {
-      ControlSend, ahk_parent, `t
+      WinGetPos, X, Y, W, H, Minecraft
       if (difficulty = "Hardcore")
       {
-         ControlSend, ahk_parent, {enter}
+         if (InFullscreen())
+            MouseClick, L, W * 653 // 1936, H * 450 // 1056, 1
+         else
+            MouseClick, L, W * 653 // 1936, H * 480 // 1056, 1
       }
-      ControlSend, ahk_parent, `t
-      if (difficulty != "Hardcore")
+      else if (difficulty != "Normal")
       {
-         ControlSend, ahk_parent, {enter}
+         if (InFullscreen())
+            MouseClick, L, W * 1303 // 1936, H * 450 // 1056, 1
+         else
+            MouseClick, L, W * 1303 // 1936, H * 480 // 1056, 1
          if (difficulty != "Hard")
          {
-            ControlSend, ahk_parent, {enter}
+            if (InFullscreen())
+               MouseClick, L, W * 1303 // 1936, H * 450 // 1056, 1
+            else
+               MouseClick, L, W * 1303 // 1936, H * 480 // 1056, 1
             if (difficulty != "Peaceful")
             {
-               ControlSend, ahk_parent, {enter}
+               if (InFullscreen())
+                  MouseClick, L, W * 1303 // 1936, H * 450 // 1056, 1
+               else
+                  MouseClick, L, W * 1303 // 1936, H * 480 // 1056, 1
             }
          }
       }
-      if (difficulty != "Hardcore")
-      {
-         ControlSend, ahk_parent, `t
-         ControlSend, ahk_parent, `t
-      }
-      ControlSend, ahk_parent, `t
-      ControlSend, ahk_parent, `t
+      Sleep, %screenDelay%
+      if (InFullscreen())
+         MouseClick, L, W * 1295 // 1936, H * 780 // 1056, 1
+      else
+         MouseClick, L, W * 1295 // 1936, H * 830 // 1056, 1
    }
-   Sleep, %screenDelay%
-   ControlSend, ahk_parent, {enter}
 }
 
 NameWorld()
@@ -254,9 +311,28 @@ NameWorld()
 
 MoreWorldOptionsScreen()
 {
-   ControlSend, ahk_parent, `t
-   ControlSend, ahk_parent, `t
-   ControlSend, ahk_parent, `t
+   if (inputMethod = "key")
+   {
+      ControlSend, ahk_parent, `t
+      ControlSend, ahk_parent, `t
+      ControlSend, ahk_parent, `t
+      InputSeed()
+      ShiftTab(2)
+      Sleep, %screenDelay%
+      ControlSend, ahk_parent, {enter}
+   }
+   else
+   {
+      WinGetPos, X, Y, W, H, Minecraft
+      MouseClick, L, W * 963 // 1936, H * 310 // 1056, 1
+      InputSeed()
+      Sleep, %screenDelay%
+      MouseClick, L, W * 653 // 1936, H * 978 // 1056, 1
+   }
+}
+
+InputSeed()
+{
    if WinActive("Minecraft")
    {
       SendInput, %SEED%
@@ -265,17 +341,21 @@ MoreWorldOptionsScreen()
    {
       ControlSend, ahk_parent, %SEED%
    }
-   ShiftTab(2)
-   Sleep, %screenDelay%
-   ControlSend, ahk_parent, {enter}
 }
 
 ExitWorld()
 {
    ControlSend, ahk_parent, {Esc}
-   Sleep, 1000
-   ShiftTab(1)
-   ControlSend, ahk_parent, {Enter} 
+   if (inputMethod = "key")
+   {
+      ShiftTab(1)
+      ControlSend, ahk_parent, {Enter}
+   }
+   else
+   {
+      WinGetPos, X, Y, W, H, Minecraft
+      MouseClick, L, W * 963 // 1936, H * 836 // 1056, 1
+   }
 }
 
 getMostRecentFile()
@@ -309,10 +389,10 @@ DoEverything()
       lastWorld := getMostRecentFile()
       lockFile := lastWorld . "\session.lock"
       FileRead, sessionlockfile, %lockFile%
-      Sleep, 20
+      Sleep, 10
       if (ErrorLevel = 0)
       {
-         Sleep, %screenDelay%
+         ;Sleep, %screenDelay%
          break
       }
    }
@@ -336,8 +416,23 @@ DeleteOrMove(lastWorld)
    }
 }
 
+InFullscreen()
+{
+   optionsFile := StrReplace(savesDirectory, "saves", "options.txt")
+   FileReadLine, fullscreenLine, %optionsFile%, 17
+   if (InStr(fullscreenLine, "true"))
+      return 1
+   else
+      return 0
+}
+
 Test()
 {
+   WinGetPos, X, Y, W, H, Minecraft
+   if (InFullscreen())
+                  MouseClick, L, W * 1303 // 1936, H * 450 // 1056, 1
+               else
+                  MouseClick, L, W * 1303 // 1936, H * 480 // 1056, 1
 }
 
 if ((!FileExist(savesDirectory)) or (!InStr(savesDirectory, ".minecraft\saves")))
@@ -361,6 +456,8 @@ if ((inputMethod != "key") and (inputMethod != "click"))
    ExitApp
 }
 
+SetDefaultMouseSpeed, 0
+SetMouseDelay, 0
 SetKeyDelay , 1
 
 #IfWinActive, Minecraft
