@@ -32,7 +32,7 @@ SetWorkingDir %A_ScriptDir%
 
 ; Options:
 global savesDirectory := "C:\Users\prana\AppData\Roaming\mmc-stable-win32\MultiMC\instances\1.16.1\.minecraft\saves" ; input your minecraft saves directory here. It will probably start with "C:\Users..." and end with "\minecraft\saves"
-global screenDelay := 10 ; Change this value to increase/decrease the number of time (in milliseconds) that each world creation screen is held for. For your run to be verifiable, each of the three screens of world creation must be shown.
+global screenDelay := 34 ; Change this value to increase/decrease the number of time (in milliseconds) that each world creation screen is held for. For your run to be verifiable, each of the three screens of world creation must be shown.
 global worldListWait := 1000 ; The macro will wait for the world list screen to show before proceeding, but sometimes this feature doesn't work, especially if you use fullscreen, and always if you're tabbed out during this part.
                             ; In that case, this number (in milliseconds) defines the hard limit that it will wait after clicking on "Singleplayer" before proceeding.
                             ; This number should basically just be a little longer than your world list screen showing lag.
@@ -50,7 +50,9 @@ global worldName := "New World" ; you can name the world whatever you want, put 
 
 global previousWorldOption := "delete" ; What to do with the previous world (either "delete" or "move") when the Page Down hotkey is used. If it says "move" then worlds will be moved to a folder called oldWorlds in your .minecraft folder
 
-global inputMethod := "key" ; either "click" or "key"
+global inputMethod := "click" ; either "click" or "key"
+
+global windowedReset := "Yes" ; change this to "Yes" if you would like to ensure that you are in windowed mode during resets (in other words, it will press f11 every time you reset if you are in fullscreen)
 
 fastResetModStuff()
 {
@@ -383,7 +385,12 @@ DoEverything()
 {
    WinGetActiveTitle, Title
    IfInString Title, player
-   ExitWorld()
+      ExitWorld()
+   if (InFullscreen() && (windowedReset = "Yes"))
+   {
+      ControlSend, ahk_parent, {F11}
+      Sleep, 300
+   }
    Loop
    {
       lastWorld := getMostRecentFile()
@@ -455,10 +462,17 @@ if ((inputMethod != "key") and (inputMethod != "click"))
    MsgBox, Choose a valid option for what input method to use. Go to the Options section of this script and choose either "key" or "click" after the words "global inputMethod := "
    ExitApp
 }
+if ((windowedReset != "Yes") and (windowedReset != "No"))
+{
+   MsgBox, Choose a valid option for whether or not to do windowed resets. Go to the Options section of this script and choose either "Yes" or "No" after the words "global windowedReset := "
+   ExitApp
+}
 
 SetDefaultMouseSpeed, 0
 SetMouseDelay, 0
 SetKeyDelay , 1
+
+F5::Reload
 
 #IfWinActive, Minecraft
 {
