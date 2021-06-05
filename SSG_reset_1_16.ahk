@@ -50,9 +50,10 @@ global worldName := "New World" ; you can name the world whatever you want, put 
 
 global previousWorldOption := "delete" ; What to do with the previous world (either "delete" or "move") when the Page Down hotkey is used. If it says "move" then worlds will be moved to a folder called oldWorlds in your .minecraft folder
 
-global inputMethod := "key" ; either "click" or "key"
+global inputMethod := "click" ; either "click" or "key"
 
 global windowedReset := "Yes" ; change this to "Yes" if you would like to ensure that you are in windowed mode during resets (in other words, it will press f11 every time you reset if you are in fullscreen)
+global pauseOnLoad := "Yes" ; change this to "Yes" if you would like the macro to automatically pause when the world loads in
 
 fastResetModStuff()
 {
@@ -163,6 +164,28 @@ CreateWorld()
    WorldListScreen()
    CreateNewWorldScreen()
    MoreWorldOptionsScreen()
+   PossiblyPause()
+}
+
+PossiblyPause()
+{
+   Sleep, 1000
+   if (pauseOnLoad = "Yes")
+   {
+      Loop
+      {
+         WinGetActiveTitle, Title
+         if (InStr(Title, "player"))
+         {
+            if ((InStr(previousTitle, "Minecraft")) && (!InStr(previousTitle, "player")))
+               ControlSend, ahk_parent, {Esc}
+            break
+         }
+         Sleep, 50
+         previousTitle := Title
+      }
+      
+   }
 }
 
 WorldListScreen()
@@ -435,11 +458,8 @@ InFullscreen()
 
 Test()
 {
-   WinGetPos, X, Y, W, H, Minecraft
-   if (InFullscreen())
-                  MouseClick, L, W * 1303 // 1936, H * 450 // 1056, 1
-               else
-                  MouseClick, L, W * 1303 // 1936, H * 480 // 1056, 1
+   WinGetTitle, fullTitle,, "Minecraft"
+   MsgBox, %fullTitle%
 }
 
 if ((!FileExist(savesDirectory)) or (!InStr(savesDirectory, ".minecraft\saves")))
@@ -465,6 +485,11 @@ if ((inputMethod != "key") and (inputMethod != "click"))
 if ((windowedReset != "Yes") and (windowedReset != "No"))
 {
    MsgBox, Choose a valid option for whether or not to do windowed resets. Go to the Options section of this script and choose either "Yes" or "No" after the words "global windowedReset := "
+   ExitApp
+}
+if ((pauseOnLoad != "Yes") and (pauseOnLoad != "No"))
+{
+   MsgBox, Choose a valid option for whether or not to pause on world load. Go to the Options section of this script and choose either "Yes" or "No" after the words "global pauseOnLoad := "
    ExitApp
 }
 
