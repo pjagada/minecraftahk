@@ -2,7 +2,7 @@
 ; Author:  Peej, with help/code from jojoe77777, onvo, SLTRR, DesktopFolder, Four, and _D4rkS0ul_
 ; Authors are not liable for any run rejections.
 ; To use this script, make sure you have autohotkey installed (autohotkey.com), then right click on the script file, and click "Run Script."
-; If you make any changes to the script by right clicking and clicking "Edit Script," make sure to reload the script by right clicking on the logo in your taskbar and clicking "Reload Script."
+; If you make any changes to the script by right clicking and clicking "Edit Script," make sure to reload the script by pressing F5 or by right clicking on the logo in your taskbar and clicking "Reload Script."
 
 ; Script Function / Help:
 ;  The following only apply inside the Minecraft window:
@@ -50,7 +50,7 @@ global worldName := "New World" ; you can name the world whatever you want, put 
 
 global previousWorldOption := "delete" ; What to do with the previous world (either "delete" or "move") when the Page Down hotkey is used. If it says "move" then worlds will be moved to a folder called oldWorlds in your .minecraft folder
 
-global inputMethod := "click" ; either "click" or "key"
+global inputMethod := "key" ; either "click" or "key"
 
 global windowedReset := "Yes" ; change this to "Yes" if you would like to ensure that you are in windowed mode during resets (in other words, it will press f11 every time you reset if you are in fullscreen)
 
@@ -389,7 +389,7 @@ DoEverything()
    if (InFullscreen() && (windowedReset = "Yes"))
    {
       ControlSend, ahk_parent, {F11}
-      Sleep, 300
+      Sleep, 50
    }
    Loop
    {
@@ -399,7 +399,7 @@ DoEverything()
       Sleep, 10
       if (ErrorLevel = 0)
       {
-         ;Sleep, %screenDelay%
+         Sleep, 50
          break
       }
    }
