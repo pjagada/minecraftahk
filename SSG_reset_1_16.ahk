@@ -32,12 +32,12 @@ SetWorkingDir %A_ScriptDir%
 
 ; Options:
 global savesDirectory := "C:\Users\prana\AppData\Roaming\mmc-stable-win32\MultiMC\instances\1.16.1\.minecraft\saves" ; input your minecraft saves directory here. It will probably start with "C:\Users..." and end with "\minecraft\saves"
-global screenDelay := 10 ; Change this value to increase/decrease the number of time (in milliseconds) that each world creation screen is held for. For your run to be verifiable, each of the three screens of world creation must be shown.
+global screenDelay := 34 ; Change this value to increase/decrease the number of time (in milliseconds) that each world creation screen is held for. For your run to be verifiable, each of the three screens of world creation must be shown.
 global worldListWait := 1000 ; The macro will wait for the world list screen to show before proceeding, but sometimes this feature doesn't work, especially if you use fullscreen, and always if you're tabbed out during this part.
                             ; In that case, this number (in milliseconds) defines the hard limit that it will wait after clicking on "Singleplayer" before proceeding.
                             ; This number should basically just be a little longer than your world list screen showing lag.
 
-global difficulty := "Easy" ; Set difficulty here. Options: "Peaceful" "Easy" "Normal" "Hard" "Hardcore"
+global difficulty := "Normal" ; Set difficulty here. Options: "Peaceful" "Easy" "Normal" "Hard" "Hardcore"
 global SEED := 2483313382402348964 ; Default seed is the current Any% SSG 1.16 seed, you can change it to whatever seed you want.
 
 global countAttempts := "No" ; Change this to "Yes" if you would like the world name to include the attempt number, otherwise, keep it as "No"
@@ -51,9 +51,7 @@ global worldName := "New World" ; you can name the world whatever you want, put 
 global previousWorldOption := "delete" ; What to do with the previous world (either "delete" or "move") when the Page Down hotkey is used. If it says "move" then worlds will be moved to a folder called oldWorlds in your .minecraft folder
 
 global inputMethod := "click" ; either "click" or "key" (click is theoretically faster but kinda experimental at this point and may not work properly depending on your resolution)
-global GUIscale := 4 ; if you have "click" selected above, then choose either GUIscale 4 or 3 (nobody uses 1 or 2 so I don't have those options available)
-
-global windowedReset := "No" ; change this to "Yes" if you would like to ensure that you are in windowed mode during resets (in other words, it will press f11 every time you reset if you are in fullscreen)
+global windowedReset := "Yes" ; change this to "Yes" if you would like to ensure that you are in windowed mode during resets (in other words, it will press f11 every time you reset if you are in fullscreen)
 global pauseOnLoad := "Yes" ; change this to "Yes" if you would like the macro to automatically pause when the world loads in
 
 fastResetModStuff()
@@ -507,12 +505,35 @@ InFullscreen()
       return 0
 }
 
-Test()
+global GUIscale
+getGUIscale()
 {
-   WinGetPos, X, Y, W, H, Minecraft
-   MouseClick, L, W * 735 // 1936, H * 350 // 1056, 1
+   optionsFile := StrReplace(savesDirectory, "saves", "options.txt")
+   FileReadLine, guiScaleLine, %optionsFile%, 26
+   if (InStr(guiScaleLine, 4) or InStr(guiScaleLine, 0))
+   {
+      GUIscale := 4
+      return 4
+   }
+   else if (InStr(guiScaleLine, 3))
+   {
+      GUIscale := 3
+      return 3
+   }
+   else
+      return 0
 }
 
+Test()
+{
+   MsgBox, %GUIscale%
+}
+
+if ((!getGUIscale()) && (inputMethod != "key"))
+{
+   MsgBox, Your GUI scale is not supported with the click macro. Either change your GUI scale to 0, 3, or 4, or change the input method to "key". Then run the script again.
+   ExitApp
+}
 if ((!FileExist(savesDirectory)) or (!InStr(savesDirectory, ".minecraft\saves")))
 {
    MsgBox, Your saves directory is invalid. Right click on the script file, click edit script, and put the correct saves directory, then save the script and run it again.
@@ -541,11 +562,6 @@ if ((windowedReset != "Yes") and (windowedReset != "No"))
 if ((pauseOnLoad != "Yes") and (pauseOnLoad != "No"))
 {
    MsgBox, Choose a valid option for whether or not to pause on world load. Go to the Options section of this script and choose either "Yes" or "No" after the words "global pauseOnLoad := "
-   ExitApp
-}
-if ((GUIscale != 3) and (GUIscale != 4))
-{
-   MsgBox, Choose a valid GUI scale. Go to the Options section of this script and choose either 3 or 4 after the words "global GUIscale := "
    ExitApp
 }
 
