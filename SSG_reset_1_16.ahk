@@ -32,7 +32,7 @@ SetWorkingDir %A_ScriptDir%
 
 ; Options:
 global savesDirectory := "C:\Users\prana\AppData\Roaming\mmc-stable-win32\MultiMC\instances\1.16.1\.minecraft\saves" ; input your minecraft saves directory here. It will probably start with "C:\Users..." and end with "\minecraft\saves"
-global screenDelay := 34 ; Change this value to increase/decrease the number of time (in milliseconds) that each world creation screen is held for. For your run to be verifiable, each of the three screens of world creation must be shown.
+global screenDelay := 35 ; Change this value to increase/decrease the number of time (in milliseconds) that each world creation screen is held for. For your run to be verifiable, each of the three screens of world creation must be shown.
 global worldListWait := 1000 ; The macro will wait for the world list screen to show before proceeding, but sometimes this feature doesn't work, especially if you use fullscreen, and always if you're tabbed out during this part.
                             ; In that case, this number (in milliseconds) defines the hard limit that it will wait after clicking on "Singleplayer" before proceeding.
                             ; This number should basically just be a little longer than your world list screen showing lag.
@@ -50,7 +50,7 @@ global worldName := "New World" ; you can name the world whatever you want, put 
 
 global previousWorldOption := "delete" ; What to do with the previous world (either "delete" or "move") when the Page Down hotkey is used. If it says "move" then worlds will be moved to a folder called oldWorlds in your .minecraft folder
 
-global inputMethod := "click" ; either "click" or "key" (click is theoretically faster but kinda experimental at this point and may not work properly depending on your resolution)
+global inputMethod := "key" ; either "click" or "key" (click is theoretically faster but kinda experimental at this point and may not work properly depending on your resolution)
 global windowedReset := "Yes" ; change this to "Yes" if you would like to ensure that you are in windowed mode during resets (in other words, it will press f11 every time you reset if you are in fullscreen)
 global pauseOnLoad := "Yes" ; change this to "Yes" if you would like the macro to automatically pause when the world loads in
 
@@ -166,7 +166,6 @@ CreateWorld()
    WorldListScreen()
    CreateNewWorldScreen()
    MoreWorldOptionsScreen()
-   PossiblyPause()
 }
 
 PossiblyPause()
@@ -414,8 +413,9 @@ InputSeed()
    }
 }
 
-ExitWorld()
+ExitWorld2()
 {
+   
    ControlSend, ahk_parent, {Esc}
    if (inputMethod = "key")
    {
@@ -430,6 +430,37 @@ ExitWorld()
       else
          MouseClick, L, W * 963 // 1936, H * 669 // 1056, 1
    }
+}
+
+ExitWorld()
+{
+   ;if (inputMethod = "key")
+   ;{
+      ShiftTab(1)
+      ControlSend, ahk_parent, {Enter}
+   ;}
+   ;else
+   ;{
+   ;   WinGetPos, X, Y, W, H, Minecraft
+   ;   if (GUIscale = 4)
+   ;      MouseClick, L, W * 963 // 1936, H * 836 // 1056, 1
+   ;   else
+   ;      MouseClick, L, W * 963 // 1936, H * 669 // 1056, 1
+   ;}
+   ControlSend, ahk_parent, {Esc}
+   ;if (inputMethod = "key")
+   ;{
+      ShiftTab(1)
+      ControlSend, ahk_parent, {Enter}
+   ;}
+   ;else
+   ;{
+   ;   WinGetPos, X, Y, W, H, Minecraft
+   ;   if (GUIscale = 4)
+   ;      MouseClick, L, W * 963 // 1936, H * 836 // 1056, 1
+   ;   else
+   ;      MouseClick, L, W * 963 // 1936, H * 669 // 1056, 1
+   ;}
 }
 
 getMostRecentFile()
@@ -524,16 +555,45 @@ getGUIscale()
       return 0
 }
 
-Test()
+getIGT()
 {
-   MsgBox, %GUIscale%
+   currentWorld := getMostRecentFile()
+   statsFolder := currentWorld . "\stats"
+   Loop, Files, %statsFolder%\*.*, F
+   {
+      statsFile := A_LoopFileLongPath
+   }
+   FileReadLine, fileText, %statsFile%, 1
+   statLocation := InStr(fileText, "play_one_minute")
+   cutOutPrevious := SubStr(fileText, statLocation)
+   statArray := StrSplit(cutOutPrevious, ",")
+   theStat := statArray[1]
+   justTheTwo := StrSplit(theStat, ":")
+   justTheNumber := justTheTwo[2]
+   return (justTheNumber)
 }
 
-if ((!getGUIscale()) && (inputMethod != "key"))
+isPaused()
 {
-   MsgBox, Your GUI scale is not supported with the click macro. Either change your GUI scale to 0, 3, or 4, or change the input method to "key". Then run the script again.
-   ExitApp
+   oldIGT := getIGT()
+   ControlSend, ahk_parent, {Esc}
+   Sleep, 50
+   newIGT := getIGT()
+   ;MsgBox, %oldIGT% %newIGT%
+   if (newIGT = oldIGT)
+   {
+      return (0)
+   }
+   else
+   {
+      return (1)
+   }
 }
+
+Test()
+{
+}
+
 if ((!FileExist(savesDirectory)) or (!InStr(savesDirectory, ".minecraft\saves")))
 {
    MsgBox, Your saves directory is invalid. Right click on the script file, click edit script, and put the correct saves directory, then save the script and run it again.
@@ -564,6 +624,11 @@ if ((pauseOnLoad != "Yes") and (pauseOnLoad != "No"))
    MsgBox, Choose a valid option for whether or not to pause on world load. Go to the Options section of this script and choose either "Yes" or "No" after the words "global pauseOnLoad := "
    ExitApp
 }
+if ((!getGUIscale()) && (inputMethod != "key"))
+{
+   MsgBox, Your GUI scale is not supported with the click macro. Either change your GUI scale to 0, 3, or 4, or change the input method to "key". Then run the script again.
+   ExitApp
+}
 
 SetDefaultMouseSpeed, 0
 SetMouseDelay, 0
@@ -576,12 +641,14 @@ F5::Reload
 PgUp:: ; This is where the keybind for creating a world is set.
    DoEverything()
    CreateWorld()
+   PossiblyPause()
 return
 
 PgDn:: ; This is where the keybind for creating a world and deleting/moving the previous one is set.
    lastWorld := DoEverything()
    CreateWorld()
    DeleteOrMove(lastWorld)
+   PossiblyPause()
 return
 
 Home:: ; This is where the keybind for exiting a world is set.
