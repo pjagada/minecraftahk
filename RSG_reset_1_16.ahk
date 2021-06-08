@@ -1,22 +1,20 @@
 ; Minecraft Reset Script (random seed 1.16)
-; Author:  Peej, with help/code from jojoe77777, onvo, SLTRR, DesktopFolder, and _D4rkS0ul_
+; Author:  Peej, with help/code from jojoe77777, onvo, SLTRR, DesktopFolder, Four, and _D4rkS0ul_
 ; Authors are not liable for any run rejections.
 ; To use this script, make sure you have autohotkey installed (autohotkey.com), then right click on the script file, and click "Run Script."
-; If you make any changes to the script by right clicking and clicking "Edit Script," make sure to reload the script by right clicking on the logo in your taskbar and clicking "Reload Script."
+; If you make any changes to the script by right clicking and clicking "Edit Script," make sure to reload the script by pressing F5 or by right clicking on the logo in your taskbar and clicking "Reload Script."
 
 ; Script Function / Help:
 ;  The following only apply inside the Minecraft window:
-;   1) When on the title screen, the "PgUp" key will create a world.
+;   1) When on the title screen, the "PgUp" key will create a world with the seed in the clipboard.
 ;   2) When in a previous world, "PgUp" will exit the world and then auto create another world. You must specify your saves directory down below for this to work.
-;   3) "PgDn" will do the same thing as "PgUp," but it will also move the previous world to another folder (or delete it if you have that option selected).
+;   3) "PgDn" will do the same thing as "PgUp," but it will also delete the previous world (or move it to another folder if you have that option selected).
 ;   4) To just exit the world and not create another world, press "Home" on keyboard.
-;   5) To change the "PgDn" and "PgUp" and "Home," scroll down to the bottom of this script, change the character before the double colon "::", and reload the script.
+;   5) To change the "PgDn" and "PgUp" and "Home" and "End," scroll down to the bottom of this script, change the character before the double colon "::", and reload the script.
 ;      https://www.autohotkey.com/docs/KeyList.htm Here are a list of the keys you can use.
 ;   6) If you want to change the difficulty or change the world name, scroll down to the Options and you can change those.
-;   7) If you are in a minecraft world and inside a menu or inventory, close that menu/inventory before activating the script (otherwise, the macro will not function properly).
-;      The macro that creates a new world only works from the title screen or from a previous world (unpaused and not in an inventory).
-;   8) There have been a lot of verification problems of the world list screen not appearing because of the lag it takes to show that screen when you have a lot of worlds, even with a long key delay.
-;      This script has a feature that can counter that problem by waiting for the title screen to go away and for the world list screen to appear before proceeding with the keypresses.
+;   7) If you are in a minecraft world and inside an inventory, close that inventory before activating the script (otherwise, the macro will not function properly).
+;      The macro that creates a new world only works from the title screen, from a previous world paused, or from a previous world unpaused.
 
 ; Troubleshooting:
 ;   Q: Why does it spend so long at the world list screen?
@@ -31,8 +29,7 @@ SetWorkingDir %A_ScriptDir%
 
 ; Options:
 global savesDirectory := "C:\Users\prana\AppData\Roaming\mmc-stable-win32\MultiMC\instances\1.16.1\.minecraft\saves" ; input your minecraft saves directory here. It will probably start with "C:\Users..." and end with "\minecraft\saves"
-global keyDelay := 70 ; Change this value to increase/decrease delay between key presses. For your run to be verifiable, each of the three screens of world creation must be shown.
-		      ; An input delay of 70 ms is recommended to ensure this. To remove delay, set this value to 0. Warning: Doing so will likely make your runs unverifiable.
+global screenDelay := 70 ; Change this value to increase/decrease the number of time (in milliseconds) that each world creation screen is held for. For your run to be verifiable, each of the three screens of world creation must be shown.
 global worldListWait := 1000 ; The macro will wait for the world list screen to show before proceeding, but sometimes this feature doesn't work, especially if you use fullscreen, and always if you're tabbed out during this part.
                             ; In that case, this number (in milliseconds) defines the hard limit that it will wait after clicking on "Singleplayer" before proceeding.
                             ; This number should basically just be a little longer than your world list screen showing lag.
@@ -48,6 +45,60 @@ global worldName := "New World" ; you can name the world whatever you want, put 
                                 ; To just show the attempt number, change this variable to ""
 
 global previousWorldOption := "move" ; What to do with the previous world (either "delete" or "move") when the Page Down hotkey is used. If it says "move" then worlds will be moved to a folder called oldWorlds in your .minecraft folder
+
+global inputMethod := "key" ; either "click" or "key" (click is theoretically faster but kinda experimental at this point and may not work properly depending on your resolution)
+global windowedReset := "No" ; change this to "Yes" if you would like to ensure that you are in windowed mode during resets (in other words, it will press f11 every time you reset if you are in fullscreen)
+global pauseOnLoad := "No" ; change this to "Yes" if you would like the macro to automatically pause when the world loads in
+
+fastResetModStuff()
+{
+   modsFolder := StrReplace(savesDirectory, "saves", "mods")
+   Loop, Files, %modsFolder%\*.*, F
+   {
+      if(InStr(A_LoopFileName, "fast-reset"))
+      {
+         ShiftTab(1)
+         break
+      }
+   }
+}
+
+ShiftTab(n)
+{
+   if WinActive("Minecraft")
+   {
+      Loop, %n%
+      {
+         Send, +`t
+      }
+   }
+   else
+   {
+      ControlSend, ahk_parent, {Shift down}
+      Loop, %n%
+      {
+         ControlSend, ahk_parent, {Tab}
+      }
+      ControlSend, ahk_parent, {Shift up}
+   }
+}
+
+Perch()
+{
+   Send, {Esc} ; pause
+   ShiftTab(1)
+   ShiftTab(1)
+   fastResetModStuff()
+   Send, {enter} ; open to LAN
+   ShiftTab(1)
+   Send, {enter} ; cheats on
+   Send, `t
+   Send, {enter} ; open to LAN
+   Send, /
+   Sleep, 70
+   SendInput, data merge entity @e[type=ender_dragon,limit=1] {{}DragonPhase:2{}}
+   Send, {enter}
+}
 
 WaitForWorldList(previousErrorLevel)
 {
@@ -75,124 +126,271 @@ WaitForWorldList(previousErrorLevel)
 
 EnterSingleplayer()
 {
-   ControlSend, ahk_parent, `t
-   WinGetPos, X, Y, W, H, Minecraft
-   X1 := Floor(W / 2) - 1
-   Y1 := Floor(H / 25)
-   X2 := Ceil(W / 2) + 1
-   Y2 := Ceil(H / 3)
-   PixelSearch, Px, Py, X1, Y1, X2, Y2, 0xADAFB7, 0, Fast
-   previousError := ErrorLevel
-   ControlSend, ahk_parent, {enter}
+   Sleep, %screenDelay%
+   if (inputMethod = "key")
+   {
+      ControlSend, ahk_parent, `t
+      WinGetPos, X, Y, W, H, Minecraft
+      X1 := Floor(W / 2) - 1
+      Y1 := Floor(H / 25)
+      X2 := Ceil(W / 2) + 1
+      Y2 := Ceil(H / 3)
+      PixelSearch, Px, Py, X1, Y1, X2, Y2, 0xADAFB7, 0, Fast
+      previousError := ErrorLevel
+      ControlSend, ahk_parent, {enter}
+   }
+   else
+   {
+      WinGetPos, X, Y, W, H, Minecraft
+      X1 := Floor(W / 2) - 1
+      Y1 := Floor(H / 25)
+      X2 := Ceil(W / 2) + 1
+      Y2 := Ceil(H / 3)
+      PixelSearch, Px, Py, X1, Y1, X2, Y2, 0xADAFB7, 0, Fast
+      previousError := ErrorLevel
+      if (GUIscale = 4)
+         MouseClick, L, W * 963 // 1936, H * 515 // 1056, 1
+      else
+         MouseClick, L, W * 963 // 1936, H * 460 // 1056, 1
+   }
    WaitForWorldList(previousError)
 }
 
 CreateWorld()
 {
-EnterSingleplayer()
-CreateNewWorld()
+   EnterSingleplayer()
+   WorldListScreen()
+   CreateNewWorldScreen()
 }
 
-CreateNewWorld()
+PossiblyPause()
 {
-ShiftTab()
-ShiftTab()
-ControlSend, ahk_parent, {enter}
-if (worldName != "New World")
-{
-   if WinActive("Minecraft")
+   Sleep, 1000
+   if (pauseOnLoad = "Yes")
    {
-      SendInput, ^a
-      Sleep, 1
-      SendInput, %worldName%
-      Sleep, 1
-   }
-   else
-   {
-      SetKeyDelay, 1
-      ControlSend, ahk_parent, {Control down}
-      ControlSend, ahk_parent, a
-      ControlSend, ahk_parent, {Control up}
-      ControlSend, ahk_parent, {BackSpace}
-      ControlSend, ahk_parent, %worldName%
-      SetKeyDelay, %keyDelay%
+      Loop
+      {
+         WinGetActiveTitle, Title
+         if (InStr(Title, "player"))
+         {
+            if ((InStr(previousTitle, "Minecraft")) && (!InStr(previousTitle, "player")))
+               ControlSend, ahk_parent, {Esc}
+            break
+         }
+         Sleep, 50
+         previousTitle := Title
+      }
+      
    }
 }
-if (countAttempts = "Yes")
+
+WorldListScreen()
 {
-   FileRead, WorldNumber, RSG_1_16.txt
-   if (ErrorLevel)
-      WorldNumber = 0
-   else
-      FileDelete, RSG_1_16.txt
-   WorldNumber += 1
-   FileAppend, %WorldNumber%, RSG_1_16.txt
-   if WinActive("Minecraft")
+   if (inputMethod = "key")
    {
-      Sleep, 1
-      SendInput, %WorldNumber%
-      Sleep, 1
-   }
-   else
-   {
-      SetKeyDelay, 1
-      ControlSend, ahk_parent, %WorldNumber%
-      SetKeyDelay, %keyDelay%
-   }
-}
-if (difficulty = "Hardcore")
-{
-   ControlSend, ahk_parent, `t
-   ControlSend, ahk_parent, {enter}
-   ShiftTab()
-   ShiftTab()
-   ShiftTab()
-}
-else if (difficulty = "Normal")
-{
-   ShiftTab()
-   ShiftTab()
-}
-else
-{
-  ControlSend, ahk_parent, `t
-  ControlSend, ahk_parent, `t
-  ControlSend, ahk_parent, {enter}
-  if (difficulty != "Hard")
-  {
-    ControlSend, ahk_parent, {enter}
-    if (difficulty != "Peaceful")
-    {
+      if WinActive("Minecraft")
+      {
+         ShiftTab(2)
+      }
+      else
+      {
+         ControlSend, ahk_parent, `t
+         ControlSend, ahk_parent, `t
+         ControlSend, ahk_parent, `t
+      }
+      Sleep, %screenDelay%
       ControlSend, ahk_parent, {enter}
-    }
-  }
-  ShiftTab()
-  ShiftTab()
-  ShiftTab()
-  ShiftTab() 
-}
-ControlSend, ahk_parent, {enter}
-}
-
-ShiftTab()
-{
-   if WinActive("Minecraft")
-   {
-      Send, +`t
    }
    else
    {
-      SetKeyDelay, 1
-      ControlSend, ahk_parent, {Shift down}{Tab}{Shift up}
-      SetKeyDelay, %keyDelay%
+      Sleep, %screenDelay%
+      WinGetPos, X, Y, W, H, Minecraft
+      if (GUIscale = 4)
+         MouseClick, L, W * 1282 // 1936, H * 879 // 1056, 1
+      else
+         MouseClick, L, W * 1200 // 1936, H * 935 // 1056, 1
+   }
+}
+
+CreateNewWorldScreen()
+{
+   NameWorld()
+   if (inputMethod = "key")
+   {
+      if (difficulty = "Normal")
+      {
+         ShiftTab(2)
+      }
+      else
+      {
+         ControlSend, ahk_parent, `t
+         if (difficulty = "Hardcore")
+         {
+            ControlSend, ahk_parent, {enter}
+            ControlSend, ahk_parent, `t
+            ControlSend, ahk_parent, `t
+            ControlSend, ahk_parent, `t
+         }
+         ControlSend, ahk_parent, `t
+         if (difficulty != "Hardcore")
+         {
+            ControlSend, ahk_parent, {enter}
+            if (difficulty != "Hard")
+            {
+               ControlSend, ahk_parent, {enter}
+               if (difficulty != "Peaceful")
+               {
+                  ControlSend, ahk_parent, {enter}
+               }
+            }
+            ControlSend, ahk_parent, `t
+            ControlSend, ahk_parent, `t
+            ControlSend, ahk_parent, `t
+            ControlSend, ahk_parent, `t
+            ControlSend, ahk_parent, `t
+         }
+      }
+      Sleep, %screenDelay%
+      ControlSend, ahk_parent, {enter}
+   }
+   else
+   {
+      WinGetPos, X, Y, W, H, Minecraft
+      if (difficulty = "Hardcore")
+      {
+         if (GUIscale = 4)
+         {
+            if (InFullscreen())
+               MouseClick, L, W * 653 // 1936, H * 450 // 1056, 1
+            else
+               MouseClick, L, W * 653 // 1936, H * 480 // 1056, 1
+         }
+         else
+         {
+            MouseClick, L, W * 735 // 1936, H * 350 // 1056, 1
+         }
+      }
+      else if (difficulty != "Normal")
+      {
+         if (GUIscale = 4)
+         {
+            if (InFullscreen())
+               MouseClick, L, W * 1303 // 1936, H * 450 // 1056, 1
+            else
+               MouseClick, L, W * 1303 // 1936, H * 480 // 1056, 1
+         }
+         else
+         {
+            MouseClick, L, W * 1200 // 1936, H * 350 // 1056, 1
+         }
+         if (difficulty != "Hard")
+         {
+            if (GUIscale = 4)
+            {
+               if (InFullscreen())
+                  MouseClick, L, W * 1303 // 1936, H * 450 // 1056, 1
+               else
+                  MouseClick, L, W * 1303 // 1936, H * 480 // 1056, 1
+            }
+            else
+            {
+               MouseClick, L, W * 1200 // 1936, H * 350 // 1056, 1
+            }
+            if (difficulty != "Peaceful")
+            {
+               if (GUIscale = 4)
+               {
+                  if (InFullscreen())
+                     MouseClick, L, W * 1303 // 1936, H * 450 // 1056, 1
+                  else
+                     MouseClick, L, W * 1303 // 1936, H * 480 // 1056, 1
+               }
+               else
+               {
+                  MouseClick, L, W * 1200 // 1936, H * 350 // 1056, 1
+               }
+            }
+         }
+      }
+      Sleep, %screenDelay%
+      if (GUIscale = 4)
+         MouseClick, L, W * 653 // 1936, H * 978 // 1056, 1
+      else
+         MouseClick, L, W * 725 // 1936, H * 1012 // 1056, 1
+   }
+}
+
+NameWorld()
+{
+   if (worldName != "New World")
+   {
+      if WinActive("Minecraft")
+      {
+         SendInput, ^a
+         Sleep, 1
+         SendInput, %worldName%
+         Sleep, 1
+      }
+      else
+      {
+         ControlSend, ahk_parent, {Control down}
+         ControlSend, ahk_parent, a
+         ControlSend, ahk_parent, {Control up}
+         ControlSend, ahk_parent, {BackSpace}
+         ControlSend, ahk_parent, %worldName%
+      }
+   }
+   if (countAttempts = "Yes")
+   {
+      FileRead, WorldNumber, RSG_1_16.txt
+      if (ErrorLevel)
+         WorldNumber = 0
+      else
+         FileDelete, RSG_1_16.txt
+      WorldNumber += 1
+      FileAppend, %WorldNumber%, RSG_1_16.txt
+      if WinActive("Minecraft")
+      {
+         Sleep, 1
+         SendInput, %WorldNumber%
+         Sleep, 1
+      }
+      else
+      {
+         ControlSend, ahk_parent, %WorldNumber%
+      }
    }
 }
 
 ExitWorld()
 {
+   ;if (inputMethod = "key")
+   ;{
+      ShiftTab(1)
+      ControlSend, ahk_parent, {Enter}
+   ;}
+   ;else
+   ;{
+   ;   WinGetPos, X, Y, W, H, Minecraft
+   ;   if (GUIscale = 4)
+   ;      MouseClick, L, W * 963 // 1936, H * 836 // 1056, 1
+   ;   else
+   ;      MouseClick, L, W * 963 // 1936, H * 669 // 1056, 1
+   ;}
    ControlSend, ahk_parent, {Esc}
-   ShiftTab()
-   ControlSend, ahk_parent, {Enter} 
+   ;if (inputMethod = "key")
+   ;{
+      ShiftTab(1)
+      ControlSend, ahk_parent, {Enter}
+   ;}
+   ;else
+   ;{
+   ;   WinGetPos, X, Y, W, H, Minecraft
+   ;   if (GUIscale = 4)
+   ;      MouseClick, L, W * 963 // 1936, H * 836 // 1056, 1
+   ;   else
+   ;      MouseClick, L, W * 963 // 1936, H * 669 // 1056, 1
+   ;}
 }
 
 getMostRecentFile()
@@ -220,16 +418,21 @@ DoEverything()
 {
    WinGetActiveTitle, Title
    IfInString Title, player
-   ExitWorld()
+      ExitWorld()
+   if (InFullscreen() && (windowedReset = "Yes"))
+   {
+      ControlSend, ahk_parent, {F11}
+      Sleep, 50
+   }
    Loop
    {
       lastWorld := getMostRecentFile()
       lockFile := lastWorld . "\session.lock"
       FileRead, sessionlockfile, %lockFile%
-      Sleep, 20
+      Sleep, 10
       if (ErrorLevel = 0)
       {
-         Sleep, %keyDelay%
+         Sleep, 50
          break
       }
    }
@@ -253,7 +456,75 @@ DeleteOrMove(lastWorld)
    }
 }
 
-if !FileExist(savesDirectory)
+InFullscreen()
+{
+   optionsFile := StrReplace(savesDirectory, "saves", "options.txt")
+   FileReadLine, fullscreenLine, %optionsFile%, 17
+   if (InStr(fullscreenLine, "true"))
+      return 1
+   else
+      return 0
+}
+
+global GUIscale
+getGUIscale()
+{
+   optionsFile := StrReplace(savesDirectory, "saves", "options.txt")
+   FileReadLine, guiScaleLine, %optionsFile%, 26
+   if (InStr(guiScaleLine, 4) or InStr(guiScaleLine, 0))
+   {
+      GUIscale := 4
+      return 4
+   }
+   else if (InStr(guiScaleLine, 3))
+   {
+      GUIscale := 3
+      return 3
+   }
+   else
+      return 0
+}
+
+getIGT()
+{
+   currentWorld := getMostRecentFile()
+   statsFolder := currentWorld . "\stats"
+   Loop, Files, %statsFolder%\*.*, F
+   {
+      statsFile := A_LoopFileLongPath
+   }
+   FileReadLine, fileText, %statsFile%, 1
+   statLocation := InStr(fileText, "play_one_minute")
+   cutOutPrevious := SubStr(fileText, statLocation)
+   statArray := StrSplit(cutOutPrevious, ",")
+   theStat := statArray[1]
+   justTheTwo := StrSplit(theStat, ":")
+   justTheNumber := justTheTwo[2]
+   return (justTheNumber)
+}
+
+isPaused()
+{
+   oldIGT := getIGT()
+   ControlSend, ahk_parent, {Esc}
+   Sleep, 50
+   newIGT := getIGT()
+   ;MsgBox, %oldIGT% %newIGT%
+   if (newIGT = oldIGT)
+   {
+      return (0)
+   }
+   else
+   {
+      return (1)
+   }
+}
+
+Test()
+{
+}
+
+if ((!FileExist(savesDirectory)) or (!InStr(savesDirectory, ".minecraft\saves")))
 {
    MsgBox, Your saves directory is invalid. Right click on the script file, click edit script, and put the correct saves directory, then save the script and run it again.
    ExitApp
@@ -268,25 +539,53 @@ if ((difficulty != "Peaceful") and (difficulty != "Easy") and (difficulty != "No
    MsgBox, Difficulty entered is invalid. Please check your spelling and enter a valid difficulty. Options are "Peaceful" "Easy" "Normal" "Hard" or "Hardcore"
    ExitApp
 }
+if ((inputMethod != "key") and (inputMethod != "click"))
+{
+   MsgBox, Choose a valid option for what input method to use. Go to the Options section of this script and choose either "key" or "click" after the words "global inputMethod := "
+   ExitApp
+}
+if ((windowedReset != "Yes") and (windowedReset != "No"))
+{
+   MsgBox, Choose a valid option for whether or not to do windowed resets. Go to the Options section of this script and choose either "Yes" or "No" after the words "global windowedReset := "
+   ExitApp
+}
+if ((pauseOnLoad != "Yes") and (pauseOnLoad != "No"))
+{
+   MsgBox, Choose a valid option for whether or not to pause on world load. Go to the Options section of this script and choose either "Yes" or "No" after the words "global pauseOnLoad := "
+   ExitApp
+}
+if ((!getGUIscale()) && (inputMethod != "key"))
+{
+   MsgBox, Your GUI scale is not supported with the click macro. Either change your GUI scale to 0, 3, or 4, or change the input method to "key". Then run the script again.
+   ExitApp
+}
 
-SetKeyDelay , %keyDelay%
+SetDefaultMouseSpeed, 0
+SetMouseDelay, 0
+SetKeyDelay , 1
+
+F5::Reload
 
 #IfWinActive, Minecraft
 {
 PgUp:: ; This is where the keybind for creating a world is set.
    DoEverything()
    CreateWorld()
+   PossiblyPause()
 return
 
 PgDn:: ; This is where the keybind for creating a world and deleting/moving the previous one is set.
    lastWorld := DoEverything()
    CreateWorld()
    DeleteOrMove(lastWorld)
+   PossiblyPause()
 return
 
 Home:: ; This is where the keybind for exiting a world is set.
    ExitWorld()
 return
+
+Insert::
+   Test()
+return
 }
-
-

@@ -12,7 +12,7 @@
 ;   4) To just exit the world and not create another world, press "Home" on keyboard.
 ;   5) To change the "PgDn" and "PgUp" and "Home" and "End," scroll down to the bottom of this script, change the character before the double colon "::", and reload the script.
 ;      https://www.autohotkey.com/docs/KeyList.htm Here are a list of the keys you can use.
-;   6) If you want to use a different seed, change the difficulty, or change the world name, scroll down to the Options and you can change those.
+;   6) If you want to use change the difficulty or change the world name, scroll down to the Options and you can change those.
 ;   7) If you are in a minecraft world and inside an inventory, close that inventory before activating the script (otherwise, the macro will not function properly).
 ;      The macro that creates a new world only works from the title screen, from a previous world paused, or from a previous world unpaused.
 
@@ -649,10 +649,6 @@ return
 
 Home:: ; This is where the keybind for exiting a world is set.
    ExitWorld()
-return
-
-End:: ; This is where the keybind for opening to LAN and perching is set.
-   Perch()
 return
 
 Insert::
