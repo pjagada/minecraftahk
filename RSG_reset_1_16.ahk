@@ -6,7 +6,7 @@
 
 ; Script Function / Help:
 ;  The following only apply inside the Minecraft window:
-;   1) When on the title screen, the "PgUp" key will create a world with the seed in the clipboard.
+;   1) When on the title screen, the "PgUp" key will create a world.
 ;   2) When in a previous world, "PgUp" will exit the world and then auto create another world. You must specify your saves directory down below for this to work.
 ;   3) "PgDn" will do the same thing as "PgUp," but it will also delete the previous world (or move it to another folder if you have that option selected).
 ;   4) To just exit the world and not create another world, press "Home" on keyboard.
