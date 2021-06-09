@@ -1,3 +1,5 @@
+; WARNING: THIS SCRIPT IS ILLEGAL AS OF CURRENT RULES UNLESS YOU SET "global doAutoResets := "No""
+
 ; Minecraft Reset Script (set seed 1.16)
 ; Author:  Peej, with help/code from jojoe77777, onvo, SLTRR, DesktopFolder, Four, and _D4rkS0ul_
 ; Authors are not liable for any run rejections.
@@ -7,7 +9,7 @@
 ; Script Function / Help:
 ;  The following only apply inside the Minecraft window:
 ;   1) When on the title screen, the "PgUp" key will create a world with the desired seed.
-;   2) When in a previous world, "PgUp" will exit the world and then auto create another world. You must specify your saves directory down below for this to work.
+;   2) When in a previous world, "PgUp" will exit the world and then auto create another world.
 ;   3) "PgDn" will do the same thing as "PgUp," but it will also delete the previous world (or move it to another folder if you have that option selected).
 ;   4) To just exit the world and not create another world, press "Home" on keyboard.
 ;   5) To open to LAN and make the dragon perch (make sure you're not in an inventory or already paused), press "End"
@@ -30,8 +32,8 @@ SetWorkingDir %A_ScriptDir%
 
 ; Options:
 global savesDirectory := "C:\Users\prana\AppData\Roaming\mmc-stable-win32\MultiMC\instances\1.16.1\.minecraft\saves" ; input your minecraft saves directory here. It will probably start with "C:\Users..." and end with "\minecraft\saves"
-global screenDelay := 70 ; Change this value to increase/decrease the number of time (in milliseconds) that each world creation screen is held for. For your run to be verifiable, each of the three screens of world creation must be shown.
-global worldListWait := 1000 ; The macro will wait for the world list screen to show before proceeding, but sometimes this feature doesn't work, especially if you use fullscreen, and always if you're tabbed out during this part.
+global screenDelay := 34 ; Change this value to increase/decrease the number of time (in milliseconds) that each world creation screen is held for. For your run to be verifiable, each of the three screens of world creation must be shown.
+global worldListWait := 100 ; The macro will wait for the world list screen to show before proceeding, but sometimes this feature doesn't work, especially if you use fullscreen, and always if you're tabbed out during this part.
                             ; In that case, this number (in milliseconds) defines the hard limit that it will wait after clicking on "Singleplayer" before proceeding.
                             ; This number should basically just be a little longer than your world list screen showing lag.
 
@@ -46,11 +48,19 @@ global worldName := "New World" ; you can name the world whatever you want, put 
                                 ; For example, if you leave this as "New World" and you're on attempt 343, then the world will be named "New World343"
                                 ; To just show the attempt number, change this variable to ""
 
-global previousWorldOption := "move" ; What to do with the previous world (either "delete" or "move") when the Page Down hotkey is used. If it says "move" then worlds will be moved to a folder called oldWorlds in your .minecraft folder
+global previousWorldOption := "delete" ; What to do with the previous world (either "delete" or "move") when the Page Down hotkey is used. If it says "move" then worlds will be moved to a folder called oldWorlds in your .minecraft folder
 
 global inputMethod := "key" ; either "click" or "key" (click is theoretically faster but kinda experimental at this point and may not work properly depending on your resolution)
-global windowedReset := "No" ; change this to "Yes" if you would like to ensure that you are in windowed mode during resets (in other words, it will press f11 every time you reset if you are in fullscreen)
-global pauseOnLoad := "No" ; change this to "Yes" if you would like the macro to automatically pause when the world loads in
+global windowedReset := "No" ; change this to "Yes" if you would like to ensure that you are in windowed mode during resets (in other words, it will press f11 every time you reset if you are in fullscreen) (this is automatically enabled if you're using the autoresetter)
+global pauseOnLoad := "No" ; change this to "Yes" if you would like the macro to automatically pause when the world loads in (this is automatically enabled if you're using the autoresetter)
+
+; Autoresetter Options:
+global doAutoResets := "Yes" ; "Yes" or "No" for whether or not to run the autoresetter based on spawns
+; The autoresetter will automatically reset if your spawn is greater than a certain number of blocks away from a certain point (ignoring y)
+global centerPointX := -233.5 ; this is the x coordinate of that certain point (by default it's the best spawn of 2483313382402348964)
+global centerPointZ := 246.5 ; this is the z coordinate of that certain point (by default it's the best spawn of 2483313382402348964)
+global radius := 5 ; if this is 10 for example, the autoresetter will not reset if you are within 10 blocks of the point specified above. Set this smaller for better spawns but more resets
+global f3pWarning := "enabled" ; change this to "disabled" once you've seen the warning
 
 fastResetModStuff()
 {
@@ -96,6 +106,7 @@ Perch()
    Send, {enter} ; cheats on
    Send, `t
    Send, {enter} ; open to LAN
+   Sleep, 20
    Send, /
    Sleep, 70
    SendInput, data merge entity @e[type=ender_dragon,limit=1] {{}DragonPhase:2{}}
@@ -169,15 +180,22 @@ CreateWorld()
 PossiblyPause()
 {
    Sleep, 1000
-   if (pauseOnLoad = "Yes")
+   if ((pauseOnLoad = "Yes") or (doAutoResets = "Yes"))
    {
       Loop
       {
-         WinGetActiveTitle, Title
+         WinGetTitle, Title, ahk_exe javaw.exe
          if (InStr(Title, "player"))
          {
             if ((InStr(previousTitle, "Minecraft")) && (!InStr(previousTitle, "player")))
+            {
+               if (doAutoResets = "Yes")
+               {
+                  Sleep, 10
+                  ControlSend, ahk_parent, {F3 Down}c{F3 Up}
+               }
                ControlSend, ahk_parent, {Esc}
+            }
             break
          }
          Sleep, 50
@@ -430,35 +448,23 @@ ExitWorld2()
    }
 }
 
-ExitWorld()
+ExitWorld(manualReset := True)
 {
-   ;if (inputMethod = "key")
-   ;{
+   if (manualReset)
+   {
       ShiftTab(1)
       ControlSend, ahk_parent, {Enter}
-   ;}
-   ;else
-   ;{
-   ;   WinGetPos, X, Y, W, H, Minecraft
-   ;   if (GUIscale = 4)
-   ;      MouseClick, L, W * 963 // 1936, H * 836 // 1056, 1
-   ;   else
-   ;      MouseClick, L, W * 963 // 1936, H * 669 // 1056, 1
-   ;}
-   ControlSend, ahk_parent, {Esc}
-   ;if (inputMethod = "key")
-   ;{
+      ControlSend, ahk_parent, {Esc}
       ShiftTab(1)
+      Sleep, 10
       ControlSend, ahk_parent, {Enter}
-   ;}
-   ;else
-   ;{
-   ;   WinGetPos, X, Y, W, H, Minecraft
-   ;   if (GUIscale = 4)
-   ;      MouseClick, L, W * 963 // 1936, H * 836 // 1056, 1
-   ;   else
-   ;      MouseClick, L, W * 963 // 1936, H * 669 // 1056, 1
-   ;}
+   }
+   else
+   {
+      ShiftTab(1)
+      Sleep, 10
+      ControlSend, ahk_parent, {Enter}
+   }
 }
 
 getMostRecentFile()
@@ -482,12 +488,12 @@ getMostRecentFile()
    return (recentFile)
 }
 
-DoEverything()
+DoEverything(manualReset := True)
 {
-   WinGetActiveTitle, Title
+   WinGetTitle, Title, ahk_exe javaw.exe
    IfInString Title, player
-      ExitWorld()
-   if (InFullscreen() && (windowedReset = "Yes"))
+      ExitWorld(manualReset)
+   if (InFullscreen() && ((windowedReset = "Yes") or (doAutoResets = "Yes")))
    {
       ControlSend, ahk_parent, {F11}
       Sleep, 50
@@ -529,6 +535,16 @@ InFullscreen()
    optionsFile := StrReplace(savesDirectory, "saves", "options.txt")
    FileReadLine, fullscreenLine, %optionsFile%, 17
    if (InStr(fullscreenLine, "true"))
+      return 1
+   else
+      return 0
+}
+
+PauseOnLostFocus()
+{
+   optionsFile := StrReplace(savesDirectory, "saves", "options.txt")
+   FileReadLine, optionLine, %optionsFile%, 45
+   if (InStr(optionLine, "true"))
       return 1
    else
       return 0
@@ -588,6 +604,52 @@ isPaused()
    }
 }
 
+DoAReset(removePrevious := True, manualReset := True)
+{
+   lastWorld := DoEverything(manualReset)
+   CreateWorld()
+   if (removePrevious)
+      DeleteOrMove(lastWorld)
+   PossiblyPause()
+}
+
+DoSomeResets(removePrevious := True)
+{
+   counter := 0
+   Loop
+   {
+      if (counter = 0)
+      {
+         DoAReset(removePrevious)
+         if (doAutoResets = "No")
+            break
+      }
+      else
+         DoAReset(True, False)
+      if (goodSpawn())
+         break
+      counter += 1
+      Sleep, 100
+   }
+}
+
+goodSpawn()
+{
+   array1 := StrSplit(Clipboard, " ")
+   xCoord := array1[7]
+   zCoord := array1[9]
+   xDisplacement := xCoord - centerPointX
+   zDisplacement := zCoord - centerPointZ
+   distance := Sqrt((xDisplacement * xDisplacement) + (zDisplacement * zDisplacement))
+   if (distance <= radius)
+   {
+      MsgBox, good spawn PauseMan
+      return True
+   }
+   else
+      return False
+}
+
 Test()
 {
 }
@@ -627,6 +689,10 @@ if ((!getGUIscale()) && (inputMethod != "key"))
    MsgBox, Your GUI scale is not supported with the click macro. Either change your GUI scale to 0, 3, or 4, or change the input method to "key". Then run the script again.
    ExitApp
 }
+if ((PauseOnLostFocus()) && (doAutoResets = "Yes") && (f3pWarning = "enabled"))
+{
+   MsgBox, If you would like to use the autoresetter while tabbed out, you will need to disable the "pause on lost focus" feature by pressing F3 + P in-game. If you will not be tabbed out while using the autoresetter, then don't worry about this, and you can disable this warning by changing "global f3pWarning := "enabled"" to "global f3pWarning := "disabled"" This is just a warning message and it will not exit the script, so you do not need to restart the script if you see this.
+}
 
 SetDefaultMouseSpeed, 0
 SetMouseDelay, 0
@@ -634,30 +700,25 @@ SetKeyDelay , 1
 
 F5::Reload
 
+Insert::
+   Test()
+return
+
 #IfWinActive, Minecraft
 {
 PgUp:: ; This is where the keybind for creating a world is set.
-   DoEverything()
-   CreateWorld()
-   PossiblyPause()
+   DoSomeResets(False)
 return
 
 PgDn:: ; This is where the keybind for creating a world and deleting/moving the previous one is set.
-   lastWorld := DoEverything()
-   CreateWorld()
-   DeleteOrMove(lastWorld)
-   PossiblyPause()
-return
-
-Home:: ; This is where the keybind for exiting a world is set.
-   ExitWorld()
+   DoSomeResets()
 return
 
 End:: ; This is where the keybind for opening to LAN and perching is set.
    Perch()
 return
 
-Insert::
-   Test()
+Home:: ; This is where the keybind for exiting a world is set.
+   ExitWorld()
 return
 }
