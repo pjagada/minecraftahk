@@ -57,10 +57,12 @@ global pauseOnLoad := "No" ; change this to "Yes" if you would like the macro to
 ; Autoresetter Options:
 global doAutoResets := "Yes" ; "Yes" or "No" for whether or not to run the autoresetter based on spawns
 ; The autoresetter will automatically reset if your spawn is greater than a certain number of blocks away from a certain point (ignoring y)
-global centerPointX := -233.5 ; this is the x coordinate of that certain point (by default it's the best spawn of 2483313382402348964)
-global centerPointZ := 246.5 ; this is the z coordinate of that certain point (by default it's the best spawn of 2483313382402348964)
-global radius := 5 ; if this is 10 for example, the autoresetter will not reset if you are within 10 blocks of the point specified above. Set this smaller for better spawns but more resets
+global centerPointX := -272.5 ; this is the x coordinate of that certain point (by default it's the best spawn of 2483313382402348964)
+global centerPointZ := 240.5 ; this is the z coordinate of that certain point (by default it's the best spawn of 2483313382402348964)
+global radius := 46 ; if this is 10 for example, the autoresetter will not reset if you are within 10 blocks of the point specified above. Set this smaller for better spawns but more resets
 global f3pWarning := "enabled" ; change this to "disabled" once you've seen the warning
+global message := "good spawn PauseMan" ; what message will pop up when a good spawn is found (if you don't want a message to pop up, change this to "")
+global playSound := "Yes" ; "Yes" or "No" on whether or not to play that Windows sound when good seed is found
 
 fastResetModStuff()
 {
@@ -643,15 +645,25 @@ goodSpawn()
    distance := Sqrt((xDisplacement * xDisplacement) + (zDisplacement * zDisplacement))
    if (distance <= radius)
    {
-      MsgBox, good spawn PauseMan
+      AlertUser()
       return True
    }
    else
       return False
 }
 
+AlertUser()
+{
+   WinActivate, ahk_exe javaw.exe
+   if (playSound = "Yes")
+      SoundPlay *16
+   if (message != "")
+      MsgBox, %message%
+}
+
 Test()
 {
+   
 }
 
 if ((!FileExist(savesDirectory)) or (!InStr(savesDirectory, ".minecraft\saves")))
@@ -692,6 +704,11 @@ if ((!getGUIscale()) && (inputMethod != "key"))
 if ((PauseOnLostFocus()) && (doAutoResets = "Yes") && (f3pWarning = "enabled"))
 {
    MsgBox, If you would like to use the autoresetter while tabbed out, you will need to disable the "pause on lost focus" feature by pressing F3 + P in-game. If you will not be tabbed out while using the autoresetter, then don't worry about this, and you can disable this warning by changing "global f3pWarning := "enabled"" to "global f3pWarning := "disabled"" This is just a warning message and it will not exit the script, so you do not need to restart the script if you see this.
+}
+if ((playSound != "Yes") and (playSound != "No"))
+{
+   MsgBox, Choose a valid option for whether or not to play a sound. Go to the Options section of this script and choose either "Yes" or "No" after the words "global playSound := "
+   ExitApp
 }
 
 SetDefaultMouseSpeed, 0
