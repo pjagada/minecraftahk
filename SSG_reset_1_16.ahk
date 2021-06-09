@@ -20,12 +20,18 @@
 ;      The macro that creates a new world only works from the title screen, from a previous world paused, or from a previous world unpaused.
 
 ; Troubleshooting:
+;   Q: Why is it creating a random seed?
+;   A: The first world when you start up Minecraft has a lot of lag associated with it, so it will probably malfunction for that first world but should be fine afterwards.
+;
 ;   Q: Why does it spend so long at the world list screen?
 ;   A: Go a few lines down and decrease the number after the words "global worldListWait := "
 ;
 ;   Q: It doesn't do anything when I click run script / Run script doesn't appear.
 ;   A: Right click the file, click "Open with" -> "Choose another app" -> "More apps" -> "Look for another app on this PC," then find the AutoHotkey folder (likely in Program Files).
 ;      Go into that folder, and double click on AutoHotkeyU64.exe. If that's not there, then reinstall AutoHotkey.
+;
+;   Q: Why am I getting false positives when using the autoresetter?
+;   A: This can happen when there's more lag going on (for example when it's the first world after opening up Minecraft or when you have streams open). Increase the number in Autoresetter Options that comes after with "global clipboardLoadTime := "
  
 #NoEnv
 SetWorkingDir %A_ScriptDir%
@@ -51,18 +57,19 @@ global worldName := "New World" ; you can name the world whatever you want, put 
 global previousWorldOption := "delete" ; What to do with the previous world (either "delete" or "move") when the Page Down hotkey is used. If it says "move" then worlds will be moved to a folder called oldWorlds in your .minecraft folder
 
 global inputMethod := "key" ; either "click" or "key" (click is theoretically faster but kinda experimental at this point and may not work properly depending on your resolution)
-global windowedReset := "No" ; change this to "Yes" if you would like to ensure that you are in windowed mode during resets (in other words, it will press f11 every time you reset if you are in fullscreen) (this is automatically enabled if you're using the autoresetter)
+global windowedReset := "No" ; change this to "Yes" if you would like to ensure that you are in windowed mode during resets (in other words, it will press f11 every time you reset if you are in fullscreen)
 global pauseOnLoad := "No" ; change this to "Yes" if you would like the macro to automatically pause when the world loads in (this is automatically enabled if you're using the autoresetter)
 
 ; Autoresetter Options:
 global doAutoResets := "Yes" ; "Yes" or "No" for whether or not to run the autoresetter based on spawns
 ; The autoresetter will automatically reset if your spawn is greater than a certain number of blocks away from a certain point (ignoring y)
-global centerPointX := -272.5 ; this is the x coordinate of that certain point (by default it's the best spawn of 2483313382402348964)
-global centerPointZ := 240.5 ; this is the z coordinate of that certain point (by default it's the best spawn of 2483313382402348964)
+global centerPointX := -272.5 ; this is the x coordinate of that certain point (by default it's the x coordinate of the stairs of the first house of 2483313382402348964)
+global centerPointZ := 240.5 ; this is the z coordinate of that certain point (by default it's the z coordinate of the stairs of the first house of 2483313382402348964)
 global radius := 46 ; if this is 10 for example, the autoresetter will not reset if you are within 10 blocks of the point specified above. Set this smaller for better spawns but more resets
 global f3pWarning := "enabled" ; change this to "disabled" once you've seen the warning
-global message := "good spawn PauseMan" ; what message will pop up when a good spawn is found (if you don't want a message to pop up, change this to "")
+global message := "" ; what message will pop up when a good spawn is found (if you don't want a message to pop up, change this to "")
 global playSound := "Yes" ; "Yes" or "No" on whether or not to play that Windows sound when good seed is found
+global clipboardLoadTime := 200 ; increase this if you're getting a lot of false positives
 
 fastResetModStuff()
 {
@@ -181,7 +188,7 @@ CreateWorld()
 
 PossiblyPause()
 {
-   Sleep, 1000
+   Sleep, 2000
    if ((pauseOnLoad = "Yes") or (doAutoResets = "Yes"))
    {
       Loop
@@ -193,7 +200,7 @@ PossiblyPause()
             {
                if (doAutoResets = "Yes")
                {
-                  Sleep, 10
+                  Sleep, 20
                   ControlSend, ahk_parent, {F3 Down}c{F3 Up}
                }
                ControlSend, ahk_parent, {Esc}
@@ -458,13 +465,13 @@ ExitWorld(manualReset := True)
       ControlSend, ahk_parent, {Enter}
       ControlSend, ahk_parent, {Esc}
       ShiftTab(1)
-      Sleep, 10
+      Sleep, 20
       ControlSend, ahk_parent, {Enter}
    }
    else
    {
       ShiftTab(1)
-      Sleep, 10
+      Sleep, 20
       ControlSend, ahk_parent, {Enter}
    }
 }
@@ -495,7 +502,7 @@ DoEverything(manualReset := True)
    WinGetTitle, Title, ahk_exe javaw.exe
    IfInString Title, player
       ExitWorld(manualReset)
-   if (InFullscreen() && ((windowedReset = "Yes") or (doAutoResets = "Yes")))
+   if (InFullscreen() && ((windowedReset = "Yes")))
    {
       ControlSend, ahk_parent, {F11}
       Sleep, 50
@@ -628,10 +635,10 @@ DoSomeResets(removePrevious := True)
       }
       else
          DoAReset(True, False)
+      Sleep, %clipboardLoadTime%
       if (goodSpawn())
          break
       counter += 1
-      Sleep, 100
    }
 }
 
@@ -645,14 +652,14 @@ goodSpawn()
    distance := Sqrt((xDisplacement * xDisplacement) + (zDisplacement * zDisplacement))
    if (distance <= radius)
    {
-      AlertUser()
+      AlertUser(distance)
       return True
    }
    else
       return False
 }
 
-AlertUser()
+AlertUser(distance)
 {
    WinActivate, ahk_exe javaw.exe
    if (playSound = "Yes")
