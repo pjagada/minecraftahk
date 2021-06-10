@@ -57,8 +57,22 @@ global worldName := "New World" ; you can name the world whatever you want, put 
 global previousWorldOption := "delete" ; What to do with the previous world (either "delete" or "move") when the Page Down hotkey is used. If it says "move" then worlds will be moved to a folder called oldWorlds in your .minecraft folder
 
 global inputMethod := "key" ; either "click" or "key" (click is theoretically faster but kinda experimental at this point and may not work properly depending on your resolution)
-global windowedReset := "No" ; change this to "Yes" if you would like to ensure that you are in windowed mode during resets (in other words, it will press f11 every time you reset if you are in fullscreen)
-global pauseOnLoad := "No" ; change this to "Yes" if you would like the macro to automatically pause when the world loads in (this is automatically enabled if you're using the autoresetter)
+global windowedReset := "Yes" ; change this to "Yes" if you would like to ensure that you are in windowed mode during resets (in other words, it will press f11 every time you reset if you are in fullscreen)
+global pauseOnLoad := "Yes" ; change this to "No" if you would like the macro to not automatically pause when the world loads in (this is automatically enabled if you're using the autoresetter)
+global activateMCOnLoad := "Yes" ; change this to "No" if you would not like the macro to pull up Minecraft when the world is ready (or when spawn is ready when autoresetter is enabled)
+global fullscreenOnLoad = "No" ; change this to "Yes" if you would like the macro ensure that you are in fullscreen mode when the world is ready (the world will be activated to ensure that no recording is lost)
+
+; Autoresetter use:
+;   1) By default, the autoresetter will reset all spawns outside of the set radius of the set focal point and will alert you of any spawns inside or equal to the set radius of the set focal point.
+;   2) If there are only a few spawns that you're going to reset, create a file (in same folder as this script) called blacklist.txt and set the autoresetter radius to something very large like 1000.
+;   3) If there are only a few spawns that you're going to play, crate a file (in same folder as this script) called whitelist.txt and set the autoresetter radius to a negative number like -1.
+;   4) You can also use the blacklist and whitelist features in combination with each other and in combination with the radius.
+;      For example, if the radius is mostly good but some spawns within it put you in like a hole, you can blacklist those spawns.
+;      Apply the inverse concept for a whitelist.
+;   5) In your blacklist.txt and/or whitelist.txt, each line should be of the following format:
+;      X1,Z1;X2,Z2
+;      Those coordinates should be opposite corners of a rectangle. Any spawns within that rectangle will be automatically counted as a good spawn if that rectangle was obtained from whitelist.txt.
+;      Similarly, if that rectangle is obtained from blacklist.txt, any spawns within that rectangle will be resetted automatically. The whitelist is consulted first, the blacklist second, and the radius last.
 
 ; Autoresetter Options:
 global doAutoResets := "Yes" ; "Yes" or "No" for whether or not to run the autoresetter based on spawns
@@ -66,6 +80,7 @@ global doAutoResets := "Yes" ; "Yes" or "No" for whether or not to run the autor
 global centerPointX := -272.5 ; this is the x coordinate of that certain point (by default it's the x coordinate of the stairs of the first house of 2483313382402348964)
 global centerPointZ := 240.5 ; this is the z coordinate of that certain point (by default it's the z coordinate of the stairs of the first house of 2483313382402348964)
 global radius := 46 ; if this is 10 for example, the autoresetter will not reset if you are within 10 blocks of the point specified above. Set this smaller for better spawns but more resets
+; if you would only like to reset the blacklisted spawns, then just set this number really large (1000 should be good enough), and if you would only like to play out whitelisted spawns, then just make this number negative
 global f3pWarning := "enabled" ; change this to "disabled" once you've seen the warning
 global message := "" ; what message will pop up when a good spawn is found (if you don't want a message to pop up, change this to "")
 global playSound := "Yes" ; "Yes" or "No" on whether or not to play that Windows sound when good seed is found
@@ -107,8 +122,7 @@ ShiftTab(n)
 Perch()
 {
    Send, {Esc} ; pause
-   ShiftTab(1)
-   ShiftTab(1)
+   ShiftTab(2)
    fastResetModStuff()
    Send, {enter} ; open to LAN
    ShiftTab(1)
@@ -189,7 +203,7 @@ CreateWorld()
 PossiblyPause()
 {
    Sleep, 2000
-   if ((pauseOnLoad = "Yes") or (doAutoResets = "Yes"))
+   if ((pauseOnLoad = "Yes") or (doAutoResets = "Yes") or (activateMCOnLoad = "Yes") or (fullscreenOnLoad = "Yes"))
    {
       Loop
       {
@@ -202,8 +216,17 @@ PossiblyPause()
                {
                   Sleep, 20
                   ControlSend, ahk_parent, {F3 Down}c{F3 Up}
+                  ControlSend, ahk_parent, {Esc}
                }
-               ControlSend, ahk_parent, {Esc}
+               else
+               {
+                  if (pauseOnLoad = "Yes")
+                     ControlSend, ahk_parent, {Esc}
+                  if ((activateMCOnLoad = "Yes") or (fullscreenOnLoad = "Yes"))
+                     WinActivate, ahk_exe javaw.exe
+                  if ((fullscreenOnLoad = "Yes") && !(InFullscreen()))
+                     ControlSend, ahk_parent, {F11}
+               }
             }
             break
          }
@@ -438,25 +461,6 @@ InputSeed()
    }
 }
 
-ExitWorld2()
-{
-   
-   ControlSend, ahk_parent, {Esc}
-   if (inputMethod = "key")
-   {
-      ShiftTab(1)
-      ControlSend, ahk_parent, {Enter}
-   }
-   else
-   {
-      WinGetPos, X, Y, W, H, Minecraft
-      if (GUIscale = 4)
-         MouseClick, L, W * 963 // 1936, H * 836 // 1056, 1
-      else
-         MouseClick, L, W * 963 // 1936, H * 669 // 1056, 1
-   }
-}
-
 ExitWorld(manualReset := True)
 {
    if (manualReset)
@@ -464,6 +468,7 @@ ExitWorld(manualReset := True)
       ShiftTab(1)
       ControlSend, ahk_parent, {Enter}
       ControlSend, ahk_parent, {Esc}
+      ;ChangeRD()
       ShiftTab(1)
       Sleep, 20
       ControlSend, ahk_parent, {Enter}
@@ -474,6 +479,43 @@ ExitWorld(manualReset := True)
       Sleep, 20
       ControlSend, ahk_parent, {Enter}
    }
+}
+
+ChangeRD()
+{
+   SetKeyDelay, 200
+   SetMouseDelay, 200
+   if (2RDOnExit = "Yes")
+   {
+      rd := RenderDistance()
+      if (rd != 2)
+      {
+         fastResetModStuff()
+         ShiftTab(3)
+         ControlSend, ahk_parent, {Enter}
+         ControlSend, ahk_parent, `t
+         ControlSend, ahk_parent, `t
+         ControlSend, ahk_parent, `t
+         ControlSend, ahk_parent, `t
+         ControlSend, ahk_parent, `t
+         ControlSend, ahk_parent, `t
+         ControlSend, ahk_parent, {Enter}
+         WinGetPos, X, Y, W, H, Minecraft
+         if (GUIscale = 4)
+            MouseClick, L, W * 470 // 1936, H * 167 // 1056, 1
+         else
+            MouseClick, L, W * 350 // 1936, H * 130 // 1056, 1
+         if (GUIscale = 4)
+            MouseClick, L, W * 1488 // 1936, H * 982 // 1056, 1
+         else
+            MouseClick, L, W * 1596 // 1936, H * 1003 // 1056, 1
+         ControlSend, ahk_parent, {Esc}
+         ShiftTab(1)
+         ControlSend, ahk_parent, {Enter}
+      }
+   }
+   SetMouseDelay, 0
+   SetKeyDelay, 1
 }
 
 getMostRecentFile()
@@ -547,6 +589,16 @@ InFullscreen()
       return 1
    else
       return 0
+}
+
+RenderDistance()
+{
+   optionsFile := StrReplace(savesDirectory, "saves", "options.txt")
+   FileReadLine, rdLine, %optionsFile%, 24
+   arr := StrSplit(rdLine, ":")
+   rd := arr[2]
+   return (rd)
+   
 }
 
 PauseOnLostFocus()
@@ -637,7 +689,10 @@ DoSomeResets(removePrevious := True)
          DoAReset(True, False)
       Sleep, %clipboardLoadTime%
       if (goodSpawn())
+      {
+         AlertUser()
          break
+      }
       counter += 1
    }
 }
@@ -647,33 +702,58 @@ goodSpawn()
    array1 := StrSplit(Clipboard, " ")
    xCoord := array1[7]
    zCoord := array1[9]
+   if (inList(xCoord, zCoord, "whitelist.txt"))
+      return True
+   if (inList(xCoord, zCoord, "blacklist.txt"))
+      return False
    xDisplacement := xCoord - centerPointX
    zDisplacement := zCoord - centerPointZ
    distance := Sqrt((xDisplacement * xDisplacement) + (zDisplacement * zDisplacement))
    if (distance <= radius)
-   {
-      AlertUser(distance)
       return True
-   }
    else
       return False
 }
 
-AlertUser(distance)
+inList(xCoord, zCoord, fileName)
 {
-   WinActivate, ahk_exe javaw.exe
+   if (FileExist(fileName))
+   {
+      Loop, read, %fileName%
+      {
+         arr0 := StrSplit(A_LoopReadLine, ";")
+         corner1 := arr0[1]
+         corner2 := arr0[2]
+         arr1 := StrSplit(corner1, ",")
+         arr2 := StrSplit(corner2, ",")
+         X1 := arr1[1]
+         Z1 := arr1[2]
+         X2 := arr2[1]
+         Z2 := arr2[2]
+         if ((((xCoord <= X1) && (xCoord >= X2)) or ((xCoord >= X1) && (xCoord <= X2))) and (((zCoord <= Z1) && (zCoord >= Z2)) or ((zCoord >= Z1) && (zCoord <= Z2))))
+            return True
+      }
+   }
+   return False
+}
+
+AlertUser()
+{
+   if ((activateMCOnLoad = "Yes") or (fullscreenOnLoad = "Yes"))
+      WinActivate, ahk_exe javaw.exe
    if (playSound = "Yes")
       SoundPlay *16
    if (message != "")
       MsgBox, %message%
+   if ((fullscreenOnLoad = "Yes") && !(InFullscreen()))
+      ControlSend, ahk_parent, {F11}
 }
 
 Test()
 {
-   
 }
 
-if ((!FileExist(savesDirectory)) or (!InStr(savesDirectory, ".minecraft\saves")))
+if ((!FileExist(savesDirectory)) or (!InStr(savesDirectory, "\saves")))
 {
    MsgBox, Your saves directory is invalid. Right click on the script file, click edit script, and put the correct saves directory, then save the script and run it again.
    ExitApp
@@ -717,16 +797,28 @@ if ((playSound != "Yes") and (playSound != "No"))
    MsgBox, Choose a valid option for whether or not to play a sound. Go to the Options section of this script and choose either "Yes" or "No" after the words "global playSound := "
    ExitApp
 }
+if ((activateMCOnLoad != "Yes") and (activateMCOnLoad != "No"))
+{
+   MsgBox, Choose a valid option for whether or not to activate Minecraft when the load is complete. Go to the Options section of this script and choose either "Yes" or "No" after the words "global activateMCOnLoad := "
+   ExitApp
+}
+if ((fullscreenOnLoad != "Yes") and (fullscreenOnLoad != "No"))
+{
+   MsgBox, Choose a valid option for whether or not to fullscreen Minecraft when the load is complete. Go to the Options section of this script and choose either "Yes" or "No" after the words "global fullscreenOnLoad := "
+   ExitApp
+}
+;this feature does not work right now: global 2RDOnExit = "No" ; change this to "Yes" if you would like to automatically go to 2 render distance when you reset from a previous world (may not work depending on your resolution, and will not work if you don't have sodium)
+;if ((2RDOnExit != "Yes") and (2RDOnExit != "No"))
+;{
+;   MsgBox, Choose a valid option for whether or not to go to 2 render distance when exiting a world. Go to the Options section of this script and choose either "Yes" or "No" after the words "global 2RDOnExit := "
+;   ExitApp
+;}
 
 SetDefaultMouseSpeed, 0
 SetMouseDelay, 0
 SetKeyDelay , 1
 
 F5::Reload
-
-Insert::
-   Test()
-return
 
 #IfWinActive, Minecraft
 {
@@ -744,5 +836,13 @@ return
 
 Home:: ; This is where the keybind for exiting a world is set.
    ExitWorld()
+return
+
+Insert::
+   Test()
+return
+
+Esc::
+   ControlSend, ahk_parent, {Esc}
 return
 }
