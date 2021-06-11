@@ -73,13 +73,15 @@ global fullscreenOnLoad = "No" ; change this to "Yes" if you would like the macr
 ;      X1,Z1;X2,Z2
 ;      Those coordinates should be opposite corners of a rectangle. Any spawns within that rectangle will be automatically counted as a good spawn if that rectangle was obtained from whitelist.txt.
 ;      Similarly, if that rectangle is obtained from blacklist.txt, any spawns within that rectangle will be resetted automatically. The whitelist is consulted first, the blacklist second, and the radius last.
+;   6) If the autoresetter gives you a spawn that you don't like, you can add it to the blacklist by pressing Ctrl B (the same thing you would press to bold text). Make sure you're on the exact coordinate that you want to be blacklisted.
+;   7) Because of this feature, I recommend starting out with a higher radius than you would need, then just add bad spawns to the blacklist.
 
 ; Autoresetter Options:
-global doAutoResets := "Yes" ; "Yes" or "No" for whether or not to run the autoresetter based on spawns
+global doAutoResets := "No" ; "Yes" or "No" for whether or not to run the autoresetter based on spawns
 ; The autoresetter will automatically reset if your spawn is greater than a certain number of blocks away from a certain point (ignoring y)
 global centerPointX := -272.5 ; this is the x coordinate of that certain point (by default it's the x coordinate of the stairs of the first house of 2483313382402348964)
 global centerPointZ := 240.5 ; this is the z coordinate of that certain point (by default it's the z coordinate of the stairs of the first house of 2483313382402348964)
-global radius := 46 ; if this is 10 for example, the autoresetter will not reset if you are within 10 blocks of the point specified above. Set this smaller for better spawns but more resets
+global radius := 50 ; if this is 10 for example, the autoresetter will not reset if you are within 10 blocks of the point specified above. Set this smaller for better spawns but more resets
 ; if you would only like to reset the blacklisted spawns, then just set this number really large (1000 should be good enough), and if you would only like to play out whitelisted spawns, then just make this number negative
 global f3pWarning := "enabled" ; change this to "disabled" once you've seen the warning
 global message := "" ; what message will pop up when a good spawn is found (if you don't want a message to pop up, change this to "")
@@ -129,7 +131,7 @@ Perch()
    Send, {enter} ; cheats on
    Send, `t
    Send, {enter} ; open to LAN
-   Sleep, 20
+   Sleep, 50
    Send, /
    Sleep, 70
    SendInput, data merge entity @e[type=ender_dragon,limit=1] {{}DragonPhase:2{}}
@@ -163,8 +165,9 @@ WaitForWorldList(previousErrorLevel)
 EnterSingleplayer()
 {
    Sleep, %screenDelay%
-   if (inputMethod = "key")
+   if ((inputMethod = "key") or (!WinActive("Minecraft")))
    {
+      SetKeyDelay, 0
       ControlSend, ahk_parent, `t
       WinGetPos, X, Y, W, H, Minecraft
       X1 := Floor(W / 2) - 1
@@ -174,6 +177,7 @@ EnterSingleplayer()
       PixelSearch, Px, Py, X1, Y1, X2, Y2, 0xADAFB7, 0, Fast
       previousError := ErrorLevel
       ControlSend, ahk_parent, {enter}
+      SetKeyDelay, 1
    }
    else
    {
@@ -200,59 +204,15 @@ CreateWorld()
    MoreWorldOptionsScreen()
 }
 
-PossiblyPause()
-{
-   Sleep, 2000
-   if ((pauseOnLoad = "Yes") or (doAutoResets = "Yes") or (activateMCOnLoad = "Yes") or (fullscreenOnLoad = "Yes"))
-   {
-      Loop
-      {
-         WinGetTitle, Title, ahk_exe javaw.exe
-         if (InStr(Title, "player"))
-         {
-            if ((InStr(previousTitle, "Minecraft")) && (!InStr(previousTitle, "player")))
-            {
-               if (doAutoResets = "Yes")
-               {
-                  Sleep, 20
-                  ControlSend, ahk_parent, {F3 Down}c{F3 Up}
-                  ControlSend, ahk_parent, {Esc}
-               }
-               else
-               {
-                  if (pauseOnLoad = "Yes")
-                     ControlSend, ahk_parent, {Esc}
-                  if ((activateMCOnLoad = "Yes") or (fullscreenOnLoad = "Yes"))
-                     WinActivate, ahk_exe javaw.exe
-                  if ((fullscreenOnLoad = "Yes") && !(InFullscreen()))
-                     ControlSend, ahk_parent, {F11}
-               }
-            }
-            break
-         }
-         Sleep, 50
-         previousTitle := Title
-      }
-      
-   }
-}
-
 WorldListScreen()
 {
-   if (inputMethod = "key")
+   if ((inputMethod = "key") or (!WinActive("Minecraft")))
    {
-      if WinActive("Minecraft")
-      {
-         ShiftTab(2)
-      }
-      else
-      {
-         ControlSend, ahk_parent, `t
-         ControlSend, ahk_parent, `t
-         ControlSend, ahk_parent, `t
-      }
+      SetKeyDelay, 0
+      ControlSend, ahk_parent, {Tab}{Tab}{Tab}
       Sleep, %screenDelay%
       ControlSend, ahk_parent, {enter}
+      SetKeyDelay, 1
    }
    else
    {
@@ -268,11 +228,12 @@ WorldListScreen()
 CreateNewWorldScreen()
 {
    NameWorld()
-   if (inputMethod = "key")
+   if ((inputMethod = "key") or (!WinActive("Minecraft")))
    {
+      SetKeyDelay, 0
       if (difficulty = "Normal")
       {
-         ShiftTab(3)
+         ControlSend, ahk_parent, {Tab}{Tab}{Tab}{Tab}{Tab}{Tab}
       }
       else
       {
@@ -296,14 +257,13 @@ CreateNewWorldScreen()
          }
          if (difficulty != "Hardcore")
          {
-            ControlSend, ahk_parent, `t
-            ControlSend, ahk_parent, `t
+            ControlSend, ahk_parent, {Tab}{Tab}
          }
-         ControlSend, ahk_parent, `t
-         ControlSend, ahk_parent, `t
+         ControlSend, ahk_parent, {Tab}{Tab}
       }
       Sleep, %screenDelay%
       ControlSend, ahk_parent, {enter}
+      SetKeyDelay, 1
    }
    else
    {
@@ -379,6 +339,75 @@ CreateNewWorldScreen()
    }
 }
 
+MoreWorldOptionsScreen()
+{
+   if ((inputMethod = "key") or (!WinActive("Minecraft")))
+   {
+      SetKeyDelay, 0
+      ControlSend, ahk_parent, {Tab}{Tab}{Tab}
+      SetKeyDelay, 1
+      Sleep, 1
+      InputSeed()
+      Sleep, 1
+      SetKeyDelay, 0
+      ControlSend, ahk_parent, {Tab}{Tab}{Tab}{Tab}{Tab}{Tab}
+      Sleep, %screenDelay%
+      ControlSend, ahk_parent, {enter}
+      SetKeyDelay, 1
+   }
+   else
+   {
+      WinGetPos, X, Y, W, H, Minecraft
+      if (GUIscale = 4)
+         MouseClick, L, W * 963 // 1936, H * 310 // 1056, 1
+      else
+         MouseClick, L, W * 963 // 1936, H * 225 // 1056, 1
+      InputSeed()
+      Sleep, %screenDelay%
+      if (GUIscale = 4)
+         MouseClick, L, W * 653 // 1936, H * 978 // 1056, 1
+      else
+         MouseClick, L, W * 725 // 1936, H * 1012 // 1056, 1
+   }
+}
+
+PossiblyPause()
+{
+   Sleep, 2000
+   if ((pauseOnLoad = "Yes") or (doAutoResets = "Yes") or (activateMCOnLoad = "Yes") or (fullscreenOnLoad = "Yes"))
+   {
+      Loop
+      {
+         WinGetTitle, Title, ahk_exe javaw.exe
+         if (InStr(Title, "player"))
+         {
+            if ((InStr(previousTitle, "Minecraft")) && (!InStr(previousTitle, "player")))
+            {
+               if (doAutoResets = "Yes")
+               {
+                  Sleep, 20
+                  ControlSend, ahk_parent, {F3 Down}c{F3 Up}
+                  ControlSend, ahk_parent, {Esc}
+               }
+               else
+               {
+                  if (pauseOnLoad = "Yes")
+                     ControlSend, ahk_parent, {Esc}
+                  if ((activateMCOnLoad = "Yes") or (fullscreenOnLoad = "Yes"))
+                     WinActivate, ahk_exe javaw.exe
+                  if ((fullscreenOnLoad = "Yes") && !(InFullscreen()))
+                     ControlSend, ahk_parent, {F11}
+               }
+            }
+            break
+         }
+         Sleep, 50
+         previousTitle := Title
+      }
+      
+   }
+}
+
 NameWorld()
 {
    if (worldName != "New World")
@@ -421,34 +450,6 @@ NameWorld()
    }
 }
 
-MoreWorldOptionsScreen()
-{
-   if (inputMethod = "key")
-   {
-      ControlSend, ahk_parent, `t
-      ControlSend, ahk_parent, `t
-      ControlSend, ahk_parent, `t
-      InputSeed()
-      ShiftTab(2)
-      Sleep, %screenDelay%
-      ControlSend, ahk_parent, {enter}
-   }
-   else
-   {
-      WinGetPos, X, Y, W, H, Minecraft
-      if (GUIscale = 4)
-         MouseClick, L, W * 963 // 1936, H * 310 // 1056, 1
-      else
-         MouseClick, L, W * 963 // 1936, H * 225 // 1056, 1
-      InputSeed()
-      Sleep, %screenDelay%
-      if (GUIscale = 4)
-         MouseClick, L, W * 653 // 1936, H * 978 // 1056, 1
-      else
-         MouseClick, L, W * 725 // 1936, H * 1012 // 1056, 1
-   }
-}
-
 InputSeed()
 {
    if WinActive("Minecraft")
@@ -469,16 +470,10 @@ ExitWorld(manualReset := True)
       ControlSend, ahk_parent, {Enter}
       ControlSend, ahk_parent, {Esc}
       ;ChangeRD()
-      ShiftTab(1)
-      Sleep, 20
-      ControlSend, ahk_parent, {Enter}
    }
-   else
-   {
-      ShiftTab(1)
-      Sleep, 20
-      ControlSend, ahk_parent, {Enter}
-   }
+   ShiftTab(1)
+   ControlSend, ahk_parent, {Enter}
+   ControlSend, ahk_parent, {enter}
 }
 
 ChangeRD()
@@ -549,6 +544,7 @@ DoEverything(manualReset := True)
       ControlSend, ahk_parent, {F11}
       Sleep, 50
    }
+   StartTime := A_TickCount
    Loop
    {
       lastWorld := getMostRecentFile()
@@ -591,7 +587,7 @@ InFullscreen()
       return 0
 }
 
-RenderDistance()
+RenderDistance() ;unused
 {
    optionsFile := StrReplace(savesDirectory, "saves", "options.txt")
    FileReadLine, rdLine, %optionsFile%, 24
@@ -601,7 +597,7 @@ RenderDistance()
    
 }
 
-PauseOnLostFocus()
+PauseOnLostFocus() ;used on script startup
 {
    optionsFile := StrReplace(savesDirectory, "saves", "options.txt")
    FileReadLine, optionLine, %optionsFile%, 45
@@ -612,7 +608,7 @@ PauseOnLostFocus()
 }
 
 global GUIscale
-getGUIscale()
+getGUIscale() ;used on script startup
 {
    optionsFile := StrReplace(savesDirectory, "saves", "options.txt")
    FileReadLine, guiScaleLine, %optionsFile%, 26
@@ -630,7 +626,7 @@ getGUIscale()
       return 0
 }
 
-getIGT()
+getIGT() ;unused
 {
    currentWorld := getMostRecentFile()
    statsFolder := currentWorld . "\stats"
@@ -648,7 +644,7 @@ getIGT()
    return (justTheNumber)
 }
 
-isPaused()
+isPaused() ;unused
 {
    oldIGT := getIGT()
    ControlSend, ahk_parent, {Esc}
@@ -713,6 +709,18 @@ goodSpawn()
       return True
    else
       return False
+}
+
+AddToBlacklist()
+{
+   array1 := StrSplit(Clipboard, " ")
+   xCoord := array1[7]
+   zCoord := array1[9]
+   theString := xCoord . "," . zCoord . ";" . xCoord . "," . zCoord
+   if (!FileExist("blacklist.txt"))
+      FileAppend, %theString%, blacklist.txt
+   else
+      FileAppend, `n%theString%, blacklist.txt
 }
 
 inList(xCoord, zCoord, fileName)
@@ -817,11 +825,12 @@ if ((fullscreenOnLoad != "Yes") and (fullscreenOnLoad != "No"))
 SetDefaultMouseSpeed, 0
 SetMouseDelay, 0
 SetKeyDelay , 1
-
-F5::Reload
+SetWinDelay, 1
 
 #IfWinActive, Minecraft
 {
+F5::Reload   
+
 PgUp:: ; This is where the keybind for creating a world is set.
    DoSomeResets(False)
 return
@@ -838,11 +847,12 @@ Home:: ; This is where the keybind for exiting a world is set.
    ExitWorld()
 return
 
+^B:: ; This is where the keybind is set for adding a spawn to the blacklisted spawns.
+   AddToBlacklist()
+return
+
 Insert::
    Test()
 return
-
-Esc::
-   ControlSend, ahk_parent, {Esc}
-return
 }
+
