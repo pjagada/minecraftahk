@@ -19,6 +19,7 @@
 
 ; Troubleshooting:
 ;   Press F5 to reload the script and redo all the selections.
+;   The switching of instances doesn't work with borderless so either use windowed bordered or fullscreen. borderless users do this ---> peepopogclimbingtreehard4house
 ;
 ;   Q: Why is it creating a random seed?
 ;   A: The first world when you start up Minecraft has a lot of lag associated with it, so it will probably malfunction for that first world but should be fine afterwards.
@@ -84,10 +85,7 @@ ShiftTab(thePID)
 {
    if WinActive("ahk_pid" thePID)
    {
-      Loop, %n%
-      {
-         Send, +`t
-      }
+      Send, +`t
    }
    else
    {
@@ -100,15 +98,20 @@ ShiftTab(thePID)
 getSavesDirectory()
 {
    WinGet, thePID, PID, A
-   if (thePID = PID1)
-      savesDirectory := savesDirectory1
-   else if (thePID = PID2)
-      savesDirectory := savesDirectory2
-   else if (thePID = PID3)
-      savesDirectory := savesDirectory3
-   else if (thePID = PID4)
-      savesDirectory := savesDirectory4
-   return (savesDirectory)
+   if (numInstances > 1)
+   {
+      if (thePID = PID1)
+         savesDirectory := savesDirectory1
+      else if (thePID = PID2)
+         savesDirectory := savesDirectory2
+      else if (thePID = PID3)
+         savesDirectory := savesDirectory3
+      else if (thePID = PID4)
+         savesDirectory := savesDirectory4
+      return (savesDirectory)
+   }
+   else
+      return (savesDirectory1)
 }
 
 Perch()
@@ -418,14 +421,15 @@ InputSeed(thePID)
    }
 }
 
-ExitWorld(thePID)
+ExitWorld(thePID, fromPause := false)
 {
-   ;ShiftTab(thePID)
-   Send, +`t
-   ControlSend, ahk_parent, {Enter}, ahk_pid %thePID%
-   ControlSend, ahk_parent, {Esc}, ahk_pid %thePID%
-   ;ShiftTab(thePID)
-   Send, +`t
+   if (!fromPause)
+   {
+      ShiftTab(thePID)
+      ControlSend, ahk_parent, {Enter}, ahk_pid %thePID%
+      ControlSend, ahk_parent, {Esc}, ahk_pid %thePID%
+   }
+   ShiftTab(thePID)
    ControlSend, ahk_parent, {Enter}, ahk_pid %thePID%
    
 }
@@ -451,11 +455,11 @@ getMostRecentFile(savesDirectory)
    return (recentFile)
 }
 
-DoEverything(thePID, savesDirectory)
+DoEverything(thePID, savesDirectory, fromPause := false)
 {
    WinGetTitle, Title, ahk_pid %thePID%
    if (InStr(Title, "player") or InStr(Title, "Instance"))
-      ExitWorld(thePID)
+      ExitWorld(thePID, fromPause)
    if (InFullscreen(savesDirectory))
    {
       ControlSend, ahk_parent, {F11}, ahk_pid %thePID%
@@ -512,9 +516,9 @@ InFullscreen(savesDirectory)
       return 0
 }
 
-DoAReset(thePID, savesDirectory, removePrevious := True)
+DoAReset(thePID, savesDirectory, removePrevious, fromPause := false)
 {
-   lastWorld := DoEverything(thePID, savesDirectory)
+   lastWorld := DoEverything(thePID, savesDirectory, fromPause)
    CreateWorld(thePID, savesDirectory)
    if (removePrevious)
       DeleteOrMove(lastWorld, savesDirectory)
@@ -577,7 +581,7 @@ worldLoadStuff(thePID, savesDirectory)
    {
       Loop
       {
-         WinGetTitle, Title, ahk_pid %thePID%
+         WinGetActiveTitle, Title
          if (InStr(Title, "player") or InStr(Title, "Instance"))
          {
             if ((InStr(previousTitle, "Minecraft")) && (!InStr(previousTitle, "player") && !InStr(previousTitle, "Instance")))
@@ -662,7 +666,8 @@ clickOn(n)
 
 Test()
 {
-   
+   ;WinGet, thePID, PID, A
+   ;ShiftTab(thePID)
 }
 
 getGUIscale(savesDirectory) ;used on script startup
@@ -681,6 +686,14 @@ getGUIscale(savesDirectory) ;used on script startup
    }
    else
       return 0
+}
+
+BackgroundReset(thePID, savesDirectory)
+{
+   if (!WinActive("ahk_pid" thePID))
+   {
+      DoAReset(thePID, savesDirectory, true, true)
+   }
 }
 
 if ((numInstances != 1) and (numInstances != 2) and (numInstances != 3) and (numInstances != 4))
@@ -772,7 +785,7 @@ CoordMode, Mouse, Relative
 {
 F5::Reload ; Reload keybind
 
-
+PgUp::
 
 PgDn:: ; Reset keybind.
    ResetAndSwitch()
@@ -780,6 +793,22 @@ return
 
 End:: ; This is where the keybind for opening to LAN and perching is set.
    Perch()
+return
+
+NumPad1::
+   BackgroundReset(PID1, savesDirectory1)
+return
+
+NumPad2::
+   BackgroundReset(PID2, savesDirectory2)
+return
+
+NumPad3::
+   BackgroundReset(PID3, savesDirectory3)
+return
+
+NumPad4::
+   BackgroundReset(PID4, savesDirectory4)
 return
 }
 Insert::
