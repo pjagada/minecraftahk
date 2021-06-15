@@ -32,14 +32,17 @@
 ;
 ;   Q: Why am I getting false positives when using the autoresetter?
 ;   A: This can happen when there's more lag going on (for example when it's the first world after opening up Minecraft or when you have streams open). Increase the number in Autoresetter Options that comes after with "global clipboardLoadTime := "
+;
+;   Q: Why is it getting stuck at the title screen?
+;   A: You're likely using fast reset mod versions 1.3.3. Try version 1.3.1 found in the 1.16 HQ server.
  
 #NoEnv
 SetWorkingDir %A_ScriptDir%
 
 ; Options:
-global savesDirectory := "C:\Users\prana\AppData\Roaming\mmc-stable-win32\MultiMC\instances\1.16.1\.minecraft\saves" ; input your minecraft saves directory here. It will probably start with "C:\Users..." and end with "\minecraft\saves"
+global savesDirectory := "C:\Users\prana\AppData\Roaming\mmc-stable-win32\MultiMC\instances\Instance 1\.minecraft\saves" ; input your minecraft saves directory here. It will probably start with "C:\Users..." and end with "\minecraft\saves"
 global screenDelay := 34 ; Change this value to increase/decrease the number of time (in milliseconds) that each world creation screen is held for. For your run to be verifiable, each of the three screens of world creation must be shown.
-global worldListWait := 200 ; The macro will wait for the world list screen to show before proceeding, but sometimes this feature doesn't work, especially if you use fullscreen, and always if you're tabbed out during this part.
+global worldListWait := 100 ; The macro will wait for the world list screen to show before proceeding, but sometimes this feature doesn't work, especially if you use fullscreen, and always if you're tabbed out during this part.
                             ; In that case, this number (in milliseconds) defines the hard limit that it will wait after clicking on "Singleplayer" before proceeding.
                             ; This number should basically just be a little longer than your world list screen showing lag.
 
@@ -56,7 +59,7 @@ global worldName := "New World" ; you can name the world whatever you want, put 
 
 global previousWorldOption := "delete" ; What to do with the previous world (either "delete" or "move") when the Page Down hotkey is used. If it says "move" then worlds will be moved to a folder called oldWorlds in your .minecraft folder
 
-global inputMethod := "click" ; either "click" or "key" (click is theoretically faster but kinda experimental at this point and may not work properly depending on your resolution)
+global inputMethod := "key" ; either "click" or "key" (click is theoretically faster but kinda experimental at this point and may not work properly depending on your resolution)
 global windowedReset := "Yes" ; change this to "Yes" if you would like to ensure that you are in windowed mode during resets (in other words, it will press f11 every time you reset if you are in fullscreen)
 global pauseOnLoad := "Yes" ; change this to "No" if you would like the macro to not automatically pause when the world loads in (this is automatically enabled if you're using the autoresetter)
 global activateMCOnLoad := "Yes" ; change this to "No" if you would not like the macro to pull up Minecraft when the world is ready (or when spawn is ready when autoresetter is enabled)
@@ -77,16 +80,16 @@ global fullscreenOnLoad = "Yes" ; change this to "Yes" if you would like the mac
 ;   7) Because of this feature, I recommend starting out with a higher radius than you would need, then just add bad spawns to the blacklist.
 
 ; Autoresetter Options:
-global doAutoResets := "Yes" ; "Yes" or "No" for whether or not to run the autoresetter based on spawns
+global doAutoResets := "No" ; "Yes" or "No" for whether or not to run the autoresetter based on spawns
 ; The autoresetter will automatically reset if your spawn is greater than a certain number of blocks away from a certain point (ignoring y)
 global centerPointX := -272.5 ; this is the x coordinate of that certain point (by default it's the x coordinate of the stairs of the first house of 2483313382402348964)
 global centerPointZ := 240.5 ; this is the z coordinate of that certain point (by default it's the z coordinate of the stairs of the first house of 2483313382402348964)
-global radius := 46 ; if this is 10 for example, the autoresetter will not reset if you are within 10 blocks of the point specified above. Set this smaller for better spawns but more resets
+global radius := 50 ; if this is 10 for example, the autoresetter will not reset if you are within 10 blocks of the point specified above. Set this smaller for better spawns but more resets
 ; if you would only like to reset the blacklisted spawns, then just set this number really large (1000 should be good enough), and if you would only like to play out whitelisted spawns, then just make this number negative
 global f3pWarning := "enabled" ; change this to "disabled" once you've seen the warning
 global message := "" ; what message will pop up when a good spawn is found (if you don't want a message to pop up, change this to "")
 global playSound := "Yes" ; "Yes" or "No" on whether or not to play that Windows sound when good seed is found. To play a custom sound, just save it as spawnready.mp3 in the same folder as this script.
-global clipboardLoadTime := 1000 ; increase this if you're getting a lot of false positives
+global clipboardLoadTime := 200 ; increase this if you're getting a lot of false positives, and decrease this if you want to spend less time waiting on the pause menu while it's checking the spawn
 
 fastResetModStuff()
 {
@@ -379,14 +382,14 @@ PossiblyPause()
       Loop
       {
          WinGetTitle, Title, ahk_exe javaw.exe
-         if (InStr(Title, "player"))
+         if (InStr(Title, "player") or InStr(Title, "Instance"))
          {
-            if ((InStr(previousTitle, "Minecraft")) && (!InStr(previousTitle, "player")))
+            if ((InStr(previousTitle, "Minecraft")) && (!InStr(previousTitle, "player") && !InStr(previousTitle, "Instance")))
             {
                if (doAutoResets = "Yes")
                {
                   Sleep, 20
-                  ControlSend, ahk_parent, {F3 Down}c{F3 Up}
+                  ControlSend, ahk_parent, {F3 Down}cd{F3 Up}
                   ControlSend, ahk_parent, {Esc}
                }
                else
@@ -473,44 +476,6 @@ ExitWorld(manualReset := True)
    }
    ShiftTab(1)
    ControlSend, ahk_parent, {Enter}
-   ControlSend, ahk_parent, {enter}
-}
-
-ChangeRD()
-{
-   SetKeyDelay, 200
-   SetMouseDelay, 200
-   if (2RDOnExit = "Yes")
-   {
-      rd := RenderDistance()
-      if (rd != 2)
-      {
-         fastResetModStuff()
-         ShiftTab(3)
-         ControlSend, ahk_parent, {Enter}
-         ControlSend, ahk_parent, `t
-         ControlSend, ahk_parent, `t
-         ControlSend, ahk_parent, `t
-         ControlSend, ahk_parent, `t
-         ControlSend, ahk_parent, `t
-         ControlSend, ahk_parent, `t
-         ControlSend, ahk_parent, {Enter}
-         WinGetPos, X, Y, W, H, Minecraft
-         if (GUIscale = 4)
-            MouseClick, L, W * 470 // 1936, H * 167 // 1056, 1
-         else
-            MouseClick, L, W * 350 // 1936, H * 130 // 1056, 1
-         if (GUIscale = 4)
-            MouseClick, L, W * 1488 // 1936, H * 982 // 1056, 1
-         else
-            MouseClick, L, W * 1596 // 1936, H * 1003 // 1056, 1
-         ControlSend, ahk_parent, {Esc}
-         ShiftTab(1)
-         ControlSend, ahk_parent, {Enter}
-      }
-   }
-   SetMouseDelay, 0
-   SetKeyDelay, 1
 }
 
 getMostRecentFile()
@@ -537,13 +502,14 @@ getMostRecentFile()
 DoEverything(manualReset := True)
 {
    WinGetTitle, Title, ahk_exe javaw.exe
-   IfInString Title, player
+   if (InStr(Title, "player") or InStr(Title, "Instance"))
       ExitWorld(manualReset)
    if (InFullscreen() && ((windowedReset = "Yes")))
    {
       ControlSend, ahk_parent, {F11}
       Sleep, 50
    }
+   startTime := A_TickCount
    confirmedExit := False
    Loop
    {
@@ -556,10 +522,10 @@ DoEverything(manualReset := True)
          Sleep, 50
          break
       }
-      if (!confirmedExit)
+      if (!confirmedExit && (A_TickCount > (startTime + 100)))
       {
          WinGetTitle, theTitle, ahk_exe javaw.exe
-         IfInString Title, player
+         if (InStr(Title, "player") or InStr(Title, "Instance"))
             ControlSend, ahk_parent, {Enter}
          confirmedExit := True
       }
