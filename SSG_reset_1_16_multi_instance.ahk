@@ -810,6 +810,13 @@ return
 NumPad4::
    BackgroundReset(PID4, savesDirectory4)
 return
+
+Home::
+   BackgroundReset(PID1, savesDirectory1)
+   BackgroundReset(PID2, savesDirectory2)
+   BackgroundReset(PID3, savesDirectory3)
+   BackgroundReset(PID4, savesDirectory4)
+return
 }
 Insert::
    Test()
