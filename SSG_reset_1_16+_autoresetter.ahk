@@ -41,13 +41,13 @@ SetWorkingDir %A_ScriptDir%
 
 ; Options:
 global savesDirectory := "C:\Users\prana\AppData\Roaming\mmc-stable-win32\MultiMC\instances\Instance 1\.minecraft\saves" ; input your minecraft saves directory here. It will probably start with "C:\Users..." and end with "\minecraft\saves"
-global screenDelay := 34 ; Change this value to increase/decrease the number of time (in milliseconds) that each world creation screen is held for. For your run to be verifiable, each of the three screens of world creation must be shown.
-global worldListWait := 100 ; The macro will wait for the world list screen to show before proceeding, but sometimes this feature doesn't work, especially if you use fullscreen, and always if you're tabbed out during this part.
+global screenDelay := 2000 ; Change this value to increase/decrease the number of time (in milliseconds) that each world creation screen is held for. For your run to be verifiable, each of the three screens of world creation must be shown.
+global worldListWait := 1000 ; The macro will wait for the world list screen to show before proceeding, but sometimes this feature doesn't work, especially if you use fullscreen, and always if you're tabbed out during this part.
                             ; In that case, this number (in milliseconds) defines the hard limit that it will wait after clicking on "Singleplayer" before proceeding.
                             ; This number should basically just be a little longer than your world list screen showing lag.
 
 global difficulty := "Normal" ; Set difficulty here. Options: "Peaceful" "Easy" "Normal" "Hard" "Hardcore"
-global SEED := 2483313382402348964  ; Default seed is the current Any% SSG 1.16 seed, you can change it to whatever seed you want.
+global SEED := "-3294725893620991126" ; Default seed is the current Any% SSG 1.16+ seed, you can change it to whatever seed you want.
 
 global countAttempts := "No" ; Change this to "Yes" if you would like the world name to include the attempt number, otherwise, keep it as "No"
                              ; The script will automatically create a text file to track your attempts starting from 1, but if you already have some attempts,
@@ -511,10 +511,10 @@ DoEverything(manualReset := True)
    }
    startTime := A_TickCount
    confirmedExit := False
+   lastWorld := getMostRecentFile()
+   lockFile := lastWorld . "\session.lock"
    Loop
    {
-      lastWorld := getMostRecentFile()
-      lockFile := lastWorld . "\session.lock"
       FileRead, sessionlockfile, %lockFile%
       Sleep, 10
       if (ErrorLevel = 0)
