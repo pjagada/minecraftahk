@@ -1,5 +1,3 @@
-; WARNING: THIS SCRIPT IS ILLEGAL AS OF CURRENT RULES UNLESS YOU SET "global doAutoResets := "No""
-
 ; Minecraft Reset Script (set seed 1.16)
 ; Author:  Peej, with help/code from jojoe77777, onvo, SLTRR, DesktopFolder, Four, and _D4rkS0ul_
 ; Authors are not liable for any run rejections.
@@ -40,8 +38,8 @@
 SetWorkingDir %A_ScriptDir%
 
 ; Options:
-global savesDirectory := "C:\Users\prana\AppData\Roaming\mmc-stable-win32\MultiMC\instances\Instance 1\.minecraft\saves" ; input your minecraft saves directory here. It will probably start with "C:\Users..." and end with "\minecraft\saves"
-global screenDelay := 2000 ; Change this value to increase/decrease the number of time (in milliseconds) that each world creation screen is held for. For your run to be verifiable, each of the three screens of world creation must be shown.
+global savesDirectory := "C:\Users\prana\AppData\Roaming\mmc-stable-win32\MultiMC\instances\1.17\.minecraft\saves" ; input your minecraft saves directory here. It will probably start with "C:\Users..." and end with "\minecraft\saves"
+global screenDelay := 100 ; Change this value to increase/decrease the number of time (in milliseconds) that each world creation screen is held for. For your run to be verifiable, each of the three screens of world creation must be shown.
 global worldListWait := 1000 ; The macro will wait for the world list screen to show before proceeding, but sometimes this feature doesn't work, especially if you use fullscreen, and always if you're tabbed out during this part.
                             ; In that case, this number (in milliseconds) defines the hard limit that it will wait after clicking on "Singleplayer" before proceeding.
                             ; This number should basically just be a little longer than your world list screen showing lag.
@@ -63,7 +61,7 @@ global inputMethod := "key" ; either "click" or "key" (click is theoretically fa
 global windowedReset := "Yes" ; change this to "Yes" if you would like to ensure that you are in windowed mode during resets (in other words, it will press f11 every time you reset if you are in fullscreen)
 global pauseOnLoad := "Yes" ; change this to "No" if you would like the macro to not automatically pause when the world loads in (this is automatically enabled if you're using the autoresetter)
 global activateMCOnLoad := "Yes" ; change this to "No" if you would not like the macro to pull up Minecraft when the world is ready (or when spawn is ready when autoresetter is enabled)
-global fullscreenOnLoad = "Yes" ; change this to "Yes" if you would like the macro ensure that you are in fullscreen mode when the world is ready (the world will be activated to ensure that no recording is lost)
+global fullscreenOnLoad = "No" ; change this to "Yes" if you would like the macro ensure that you are in fullscreen mode when the world is ready (the world will be activated to ensure that no recording is lost)
 
 ; Autoresetter use:
 ;   1) By default, the autoresetter will reset all spawns outside of the set radius of the set focal point and will alert you of any spawns inside or equal to the set radius of the set focal point.
@@ -80,11 +78,11 @@ global fullscreenOnLoad = "Yes" ; change this to "Yes" if you would like the mac
 ;   7) Because of this feature, I recommend starting out with a higher radius than you would need, then just add bad spawns to the blacklist.
 
 ; Autoresetter Options:
-global doAutoResets := "No" ; "Yes" or "No" for whether or not to run the autoresetter based on spawns
+global doAutoResets := "Yes" ; "Yes" or "No" for whether or not to run the autoresetter based on spawns
 ; The autoresetter will automatically reset if your spawn is greater than a certain number of blocks away from a certain point (ignoring y)
-global centerPointX := -272.5 ; this is the x coordinate of that certain point (by default it's the x coordinate of the stairs of the first house of 2483313382402348964)
-global centerPointZ := 240.5 ; this is the z coordinate of that certain point (by default it's the z coordinate of the stairs of the first house of 2483313382402348964)
-global radius := 50 ; if this is 10 for example, the autoresetter will not reset if you are within 10 blocks of the point specified above. Set this smaller for better spawns but more resets
+global centerPointX := 163.5 ; this is the x coordinate of that certain point (by default it's the x coordinate of the stairs of the first house of 2483313382402348964)
+global centerPointZ := 194.5 ; this is the z coordinate of that certain point (by default it's the z coordinate of the stairs of the first house of 2483313382402348964)
+global radius := 6 ; if this is 10 for example, the autoresetter will not reset if you are within 10 blocks of the point specified above. Set this smaller for better spawns but more resets
 ; if you would only like to reset the blacklisted spawns, then just set this number really large (1000 should be good enough), and if you would only like to play out whitelisted spawns, then just make this number negative
 global f3pWarning := "enabled" ; change this to "disabled" once you've seen the warning
 global message := "" ; what message will pop up when a good spawn is found (if you don't want a message to pop up, change this to "")
@@ -560,20 +558,26 @@ InFullscreen()
       return 0
 }
 
-RenderDistance() ;unused
+global version = getVersion()
+getVersion()
 {
    optionsFile := StrReplace(savesDirectory, "saves", "options.txt")
-   FileReadLine, rdLine, %optionsFile%, 24
-   arr := StrSplit(rdLine, ":")
-   rd := arr[2]
-   return (rd)
-   
+   FileReadLine, versionLine, %optionsFile%, 1
+   arr := StrSplit(versionLine, ":")
+   dataVersion := arr[2]
+   if (dataVersion > 2600)
+      return (17)
+   else
+      return (16)
 }
 
 PauseOnLostFocus() ;used on script startup
 {
    optionsFile := StrReplace(savesDirectory, "saves", "options.txt")
-   FileReadLine, optionLine, %optionsFile%, 45
+   if (version = 16)
+      FileReadLine, optionLine, %optionsFile%, 45
+   else
+      FileReadLine, optionLine, %optionsFile%, 48
    if (InStr(optionLine, "true"))
       return 1
    else
@@ -584,7 +588,10 @@ global GUIscale
 getGUIscale() ;used on script startup
 {
    optionsFile := StrReplace(savesDirectory, "saves", "options.txt")
-   FileReadLine, guiScaleLine, %optionsFile%, 26
+   if (version = 16)
+      FileReadLine, guiScaleLine, %optionsFile%, 26
+   else
+      FileReadLine, guiScaleLine, %optionsFile%, 29
    if (InStr(guiScaleLine, 4) or InStr(guiScaleLine, 0))
    {
       GUIscale := 4
@@ -737,6 +744,7 @@ AlertUser()
 
 Test()
 {
+   MsgBox, %version%
 }
 
 if ((!FileExist(savesDirectory)) or (!InStr(savesDirectory, "\saves")))

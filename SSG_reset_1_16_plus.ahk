@@ -46,7 +46,7 @@ global savesDirectory1 := "C:\Users\prana\AppData\Roaming\mmc-stable-win32\Multi
 global savesDirectory2 := "C:\Users\prana\AppData\Roaming\mmc-stable-win32\MultiMC\instances\1.17 Instance 2\.minecraft\saves" ; same thing here, if you're not using multiple instances, then it doesn't matter what this is
 global savesDirectory3 := "C:\Users\prana\AppData\Roaming\mmc-stable-win32\MultiMC\instances\1.17 Instance 3\.minecraft\saves" ; same thing here, if you're not using more than 2 instances, then it doesn't matter what this is
 global savesDirectory4 := "C:\Users\prana\AppData\Roaming\mmc-stable-win32\MultiMC\instances\1.17 Instance 4\.minecraft\saves" ; same thing here, if you're not using more than 3 instances, then it doesn't matter what this is
-global screenDelay := 30 ; Change this value to increase/decrease the number of time (in milliseconds) that each world creation screen is held for. For your run to be verifiable, each of the three screens of world creation must be shown.
+global screenDelay := 50 ; Change this value to increase/decrease the number of time (in milliseconds) that each world creation screen is held for. For your run to be verifiable, each of the three screens of world creation must be shown.
 global worldListWait := 1000 ; The macro will wait for the world list screen to show before proceeding, but sometimes this feature doesn't work, especially if you use fullscreen, and always if you're tabbed out during this part.
                             ; In that case, this number (in milliseconds) defines the hard limit that it will wait after clicking on "Singleplayer" before proceeding.
                             ; This number should basically just be a little longer than your world list screen showing lag.
@@ -672,7 +672,10 @@ Test()
 getGUIscale(savesDirectory) ;used on script startup
 {
    optionsFile := StrReplace(savesDirectory, "saves", "options.txt")
-   FileReadLine, guiScaleLine, %optionsFile%, 26
+   if (version = 16)
+      FileReadLine, guiScaleLine, %optionsFile%, 26
+   else
+      FileReadLine, guiScaleLine, %optionsFile%, 29
    if (InStr(guiScaleLine, 4) or InStr(guiScaleLine, 0))
    {
       GUIscale := 4
@@ -685,6 +688,19 @@ getGUIscale(savesDirectory) ;used on script startup
    }
    else
       return 0
+}
+
+global version = getVersion()
+getVersion()
+{
+   optionsFile := StrReplace(savesDirectory, "saves", "options.txt")
+   FileReadLine, versionLine, %optionsFile%, 1
+   arr := StrSplit(versionLine, ":")
+   dataVersion := arr[2]
+   if (dataVersion > 2600)
+      return (17)
+   else
+      return (16)
 }
 
 BackgroundReset(thePID, savesDirectory)
