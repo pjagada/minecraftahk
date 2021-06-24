@@ -124,19 +124,37 @@ ShiftTab(n)
 
 Perch()
 {
-   Send, {Esc} ; pause
-   ShiftTab(2)
-   fastResetModStuff()
-   Send, {enter} ; open to LAN
-   ShiftTab(1)
-   Send, {enter} ; cheats on
-   Send, `t
-   Send, {enter} ; open to LAN
-   Sleep, 50
-   Send, /
-   Sleep, 70
-   SendInput, data merge entity @e[type=ender_dragon,limit=1] {{}DragonPhase:2{}}
-   Send, {enter}
+   if (version = 17)
+   {
+      Send, {Esc} ; pause
+      ShiftTab(2)
+      fastResetModStuff()
+      Send, {enter} ; open to LAN
+      Send, {tab}{tab}{enter} ; cheats on
+      Send, `t
+      Send, {enter} ; open to LAN
+      Sleep, 50
+      Send, /
+      Sleep, 70
+      SendInput, data merge entity @e[type=ender_dragon,limit=1] {{}DragonPhase:2{}}
+      Send, {enter}
+   }
+   else
+   {
+      Send, {Esc} ; pause
+      ShiftTab(2)
+      fastResetModStuff()
+      Send, {enter} ; open to LAN
+      ShiftTab(1)
+      Send, {enter} ; cheats on
+      Send, `t
+      Send, {enter} ; open to LAN
+      Sleep, 50
+      Send, /
+      Sleep, 70
+      SendInput, data merge entity @e[type=ender_dragon,limit=1] {{}DragonPhase:2{}}
+      Send, {enter}
+   }
 }
 
 WaitForWorldList(previousErrorLevel)
