@@ -1,4 +1,4 @@
-; Minecraft Reset Script for multiple instances (set seed 1.16)
+; Minecraft Reset Script (set seed 1.16)
 ; Author:  Peej, with help/code from jojoe77777, onvo, SLTRR, DesktopFolder, Four, and _D4rkS0ul_
 ; Authors are not liable for any run rejections.
 ; To use this script, make sure you have autohotkey installed (autohotkey.com), then right click on the script file, and click "Run Script."
@@ -6,23 +6,20 @@
 
 ; Script Function / Help:
 ;  The following only apply inside the Minecraft window:
-;   1) When on the title screen or in a previous world (whether paused or unpaused), the "PgUp" key will create a world with the desired seed.
-;   2) If you are using multiple instances, it will automatically switch to the next instance once the load starts.
-;   3) "PgDn" will do the same thing as "PgUp," but it will also delete the previous world if the world folder name starts with an underscore (or move it to another folder if you have that option selected).
-;   4) Make sure you have a world in each saves folder, otherwise it's not going to work.
+;   1) When on the title screen, the "PgUp" key will create a world with the desired seed.
+;   2) When in a previous world, "PgUp" will exit the world and then auto create another world.
+;   3) "PgDn" will do the same thing as "PgUp," but it will also delete the previous world (or move it to another folder if you have that option selected).
+;   4) To just exit the world and not create another world, press "Home" on keyboard.
 ;   5) To open to LAN and make the dragon perch (make sure you're not in an inventory or already paused), press "End"
-;   6) To change the "PgDn" and "PgUp" and "End," scroll down to the bottom of this script, change the character before the double colon "::", and reload the script.
+;   6) To change the "PgDn" and "PgUp" and "Home" and "End," scroll down to the bottom of this script, change the character before the double colon "::", and reload the script.
 ;      https://www.autohotkey.com/docs/KeyList.htm Here are a list of the keys you can use.
 ;   7) If you want to use a different seed, change the difficulty, or change the world name, scroll down to the Options and you can change those.
 ;   8) If you are in a minecraft world and inside an inventory, close that inventory before activating the script (otherwise, the macro will not function properly).
 ;      The macro that creates a new world only works from the title screen, from a previous world paused, or from a previous world unpaused.
 
 ; Troubleshooting:
-;   Press F5 to reload the script and redo all the selections.
-;   The switching of instances doesn't work with borderless so either use windowed bordered or fullscreen. borderless users do this ---> peepopogclimbingtreehard4house
-;
 ;   Q: Why is it creating a random seed?
-;   A: The first world when you start up Minecraft has a lot of lag associated with it, so it will probably malfunction for that first world but should be fine afterwards.
+;   A: Menu lag, try increasing your screenDelay.
 ;
 ;   Q: Why does it spend so long at the world list screen?
 ;   A: Go a few lines down and decrease the number after the words "global worldListWait := "
@@ -31,22 +28,18 @@
 ;   A: Right click the file, click "Open with" -> "Choose another app" -> "More apps" -> "Look for another app on this PC," then find the AutoHotkey folder (likely in Program Files).
 ;      Go into that folder, and double click on AutoHotkeyU64.exe. If that's not there, then reinstall AutoHotkey.
 ;
+;   Q: Why am I getting false positives when using the autoresetter?
+;   A: This can happen when there's more lag going on (for example when it's the first world after opening up Minecraft or when you have streams open). Increase the number in Autoresetter Options that comes after with "global clipboardLoadTime := "
+;
 ;   Q: Why is it getting stuck at the title screen?
 ;   A: You're likely using fast reset mod versions 1.3.3. Try version 1.3.1 found in the 1.16 HQ server.
-;      Make sure you also have at least one world in each saves directory that you're using.
-
  
 #NoEnv
 SetWorkingDir %A_ScriptDir%
 
 ; Options:
-global numInstances = 1
-
-global savesDirectory1 := "C:\Users\prana\AppData\Roaming\mmc-stable-win32\MultiMC\instances\1.17\.minecraft\saves" ; input your minecraft saves directory here. It will probably start with "C:\Users..." and end with "\minecraft\saves"
-global savesDirectory2 := "C:\Users\prana\AppData\Roaming\mmc-stable-win32\MultiMC\instances\1.17 Instance 2\.minecraft\saves" ; same thing here, if you're not using multiple instances, then it doesn't matter what this is
-global savesDirectory3 := "C:\Users\prana\AppData\Roaming\mmc-stable-win32\MultiMC\instances\1.17 Instance 3\.minecraft\saves" ; same thing here, if you're not using more than 2 instances, then it doesn't matter what this is
-global savesDirectory4 := "C:\Users\prana\AppData\Roaming\mmc-stable-win32\MultiMC\instances\1.17 Instance 4\.minecraft\saves" ; same thing here, if you're not using more than 3 instances, then it doesn't matter what this is
-global screenDelay := 50 ; Change this value to increase/decrease the number of time (in milliseconds) that each world creation screen is held for. For your run to be verifiable, each of the three screens of world creation must be shown.
+global savesDirectory := "C:\Users\prana\AppData\Roaming\mmc-stable-win32\MultiMC\instances\1.17\.minecraft\saves" ; input your minecraft saves directory here. It will probably start with "C:\Users..." and end with "\minecraft\saves"
+global screenDelay := 70 ; Change this value to increase/decrease the number of time (in milliseconds) that each world creation screen is held for. For your run to be verifiable, each of the three screens of world creation must be shown.
 global worldListWait := 1000 ; The macro will wait for the world list screen to show before proceeding, but sometimes this feature doesn't work, especially if you use fullscreen, and always if you're tabbed out during this part.
                             ; In that case, this number (in milliseconds) defines the hard limit that it will wait after clicking on "Singleplayer" before proceeding.
                             ; This number should basically just be a little longer than your world list screen showing lag.
@@ -62,66 +55,83 @@ global worldName := "New World" ; you can name the world whatever you want, put 
                                 ; For example, if you leave this as "New World" and you're on attempt 343, then the world will be named "New World343"
                                 ; To just show the attempt number, change this variable to ""
 
-global previousWorldOption := "delete" ; What to do with the previous world (either "delete" or "move") when the Page Down hotkey is used. If it says "move" then worlds will be moved to a folder called oldWorlds in your .minecraft folder. This does not apply to worlds whose files start with an "_" (without the quotes)
-global inputMethod := "key" ; this doesn't work right now for click lmao just leave it as key. either "click" or "key" (click is theoretically faster but kinda experimental at this point and may not work properly depending on your resolution)
-global fullscreenOnLoad = "No" ; change this to "Yes" if you would like the macro ensure that you are in fullscreen mode when the world is ready (a little experimental so I would recommend not using this in case of verification issues)
-global pauseOnLoad := "Yes" ; change this to "No" if you would like the macro to not automatically pause when the world loads in (this also doesn't always work admiraaa but no harm in leaving it on)
+global previousWorldOption := "move" ; What to do with the previous world (either "delete" or "move") when the Page Down hotkey is used. If it says "move" then worlds will be moved to a folder called oldWorlds in your .minecraft folder
 
+global inputMethod := "key" ; either "click" or "key" (click is theoretically faster but kinda experimental at this point and may not work properly depending on your resolution)
+global windowedReset := "No" ; change this to "Yes" if you would like to ensure that you are in windowed mode during resets (in other words, it will press f11 every time you reset if you are in fullscreen)
+global pauseOnLoad := "Yes" ; change this to "No" if you would like the macro to not automatically pause when the world loads in (this is automatically enabled if you're using the autoresetter)
+global activateMCOnLoad := "Yes" ; change this to "No" if you would not like the macro to pull up Minecraft when the world is ready (or when spawn is ready when autoresetter is enabled)
+global fullscreenOnLoad = "No" ; change this to "Yes" if you would like the macro ensure that you are in fullscreen mode when the world is ready (the world will be activated to ensure that no recording is lost)
 
-fastResetModStuff(savesDirectory)
+global trackFlint := "Yes" ; track flint rates (to make sure that it's not counting gravel from non-run worlds, it will only count it if you run it from a previous world)
+                           ; Each run will be logged in a file called SSGstats.csv, and cumulative stats will be stored in a file called SSGstats.txt
+
+; Autoresetter use:
+;   1) By default, the autoresetter will reset all spawns outside of the set radius of the set focal point and will alert you of any spawns inside or equal to the set radius of the set focal point.
+;   2) If there are only a few spawns that you're going to reset, create a file (in same folder as this script) called blacklist.txt and set the autoresetter radius to something very large like 1000.
+;   3) If there are only a few spawns that you're going to play, crate a file (in same folder as this script) called whitelist.txt and set the autoresetter radius to a negative number like -1.
+;   4) You can also use the blacklist and whitelist features in combination with each other and in combination with the radius.
+;      For example, if the radius is mostly good but some spawns within it put you in like a hole, you can blacklist those spawns.
+;      Apply the inverse concept for a whitelist.
+;   5) In your blacklist.txt and/or whitelist.txt, each line should be of the following format:
+;      X1,Z1;X2,Z2
+;      Those coordinates should be opposite corners of a rectangle. Any spawns within that rectangle will be automatically counted as a good spawn if that rectangle was obtained from whitelist.txt.
+;      Similarly, if that rectangle is obtained from blacklist.txt, any spawns within that rectangle will be resetted automatically. The whitelist is consulted first, the blacklist second, and the radius last.
+;   6) If the autoresetter gives you a spawn that you don't like, you can add it to the blacklist by pressing Ctrl B (the same thing you would press to bold text). Make sure you're on the exact coordinate that you want to be blacklisted.
+;   7) Because of this feature, I recommend starting out with a higher radius than you would need, then just add bad spawns to the blacklist.
+
+; Autoresetter Options:
+global doAutoResets := "No" ; "Yes" or "No" for whether or not to run the autoresetter based on spawns
+; The autoresetter will automatically reset if your spawn is greater than a certain number of blocks away from a certain point (ignoring y)
+global centerPointX := 162.7 ; this is the x coordinate of that certain point (by default it's the x coordinate of being pushed up against the window of the blacksmith of -3294725893620991126)
+global centerPointZ := 194.5 ; this is the z coordinate of that certain point (by default it's the z coordinate of being pushed up against the window of the blacksmith of -3294725893620991126)
+global radius := 13 ; if this is 10 for example, the autoresetter will not reset if you are within 10 blocks of the point specified above. Set this smaller for better spawns but more resets
+; if you would only like to reset the blacklisted spawns, then just set this number really large (1000 should be good enough), and if you would only like to play out whitelisted spawns, then just make this number negative
+global f3pWarning := "enabled" ; change this to "disabled" once you've seen the warning
+global message := "" ; what message will pop up when a good spawn is found (if you don't want a message to pop up, change this to "")
+global playSound := "Yes" ; "Yes" or "No" on whether or not to play that Windows sound when good seed is found. To play a custom sound, just save it as spawnready.mp3 in the same folder as this script.
+global clipboardLoadTime := 1000 ; increase this if you're getting a lot of false positives, and decrease this if you want to spend less time waiting on the pause menu while it's checking the spawn
+
+fastResetModStuff()
 {
    modsFolder := StrReplace(savesDirectory, "saves", "mods")
    Loop, Files, %modsFolder%\*.*, F
    {
       if(InStr(A_LoopFileName, "fast-reset"))
       {
-         Send, +`t
+         ShiftTab(1)
          break
       }
    }
 }
 
-ShiftTab(thePID)
+ShiftTab(n)
 {
-   if WinActive("ahk_pid" thePID)
+   if WinActive("Minecraft")
    {
-      Send, +`t
+      Loop, %n%
+      {
+         Send, +`t
+      }
    }
    else
    {
-      ControlSend, ahk_parent, {Shift down}, ahk_pid %thePID%
-      ControlSend, ahk_parent, {Tab}, ahk_pid %thePID%
-      ControlSend, ahk_parent, {Shift up}, ahk_pid %thePID%
+      ControlSend, ahk_parent, {Shift down}
+      Loop, %n%
+      {
+         ControlSend, ahk_parent, {Tab}
+      }
+      ControlSend, ahk_parent, {Shift up}
    }
-}
-
-getSavesDirectory()
-{
-   WinGet, thePID, PID, A
-   if (numInstances > 1)
-   {
-      if (thePID = PID1)
-         savesDirectory := savesDirectory1
-      else if (thePID = PID2)
-         savesDirectory := savesDirectory2
-      else if (thePID = PID3)
-         savesDirectory := savesDirectory3
-      else if (thePID = PID4)
-         savesDirectory := savesDirectory4
-      return (savesDirectory)
-   }
-   else
-      return (savesDirectory1)
 }
 
 Perch()
 {
-   savesDirectory := getSavesDirectory()
    if (version = 17)
    {
       Send, {Esc} ; pause
       ShiftTab(2)
-      fastResetModStuff(savesDirectory)
+      fastResetModStuff()
       Send, {enter} ; open to LAN
       Send, {tab}{tab}{enter} ; cheats on
       Send, `t
@@ -136,7 +146,7 @@ Perch()
    {
       Send, {Esc} ; pause
       ShiftTab(2)
-      fastResetModStuff(savesDirectory)
+      fastResetModStuff()
       Send, {enter} ; open to LAN
       ShiftTab(1)
       Send, {enter} ; cheats on
@@ -174,13 +184,13 @@ WaitForWorldList(previousErrorLevel)
    }
 }
 
-EnterSingleplayer(thePID)
+EnterSingleplayer()
 {
    Sleep, %screenDelay%
-   if ((inputMethod = "key") or (!WinActive("ahk_pid" thePID)))
+   if ((inputMethod = "key") or (!WinActive("Minecraft")))
    {
       SetKeyDelay, 0
-      ControlSend, ahk_parent, `t, ahk_pid %thePID%
+      ControlSend, ahk_parent, `t
       WinGetPos, X, Y, W, H, Minecraft
       X1 := Floor(W / 2) - 1
       Y1 := Floor(H / 25)
@@ -188,7 +198,7 @@ EnterSingleplayer(thePID)
       Y2 := Ceil(H / 3)
       PixelSearch, Px, Py, X1, Y1, X2, Y2, 0xADAFB7, 0, Fast
       previousError := ErrorLevel
-      ControlSend, ahk_parent, {enter}, ahk_pid %thePID%
+      ControlSend, ahk_parent, {enter}
       SetKeyDelay, 1
    }
    else
@@ -208,23 +218,22 @@ EnterSingleplayer(thePID)
    WaitForWorldList(previousError)
 }
 
-CreateWorld(thePID, savesDirectory)
+CreateWorld()
 {
-   CoordMode, Mouse, Window
-   EnterSingleplayer(thePID)
-   WorldListScreen(thePID)
-   CreateNewWorldScreen(thePID, savesDirectory)
-   MoreWorldOptionsScreen(thePID)
+   EnterSingleplayer()
+   WorldListScreen()
+   CreateNewWorldScreen()
+   MoreWorldOptionsScreen()
 }
 
-WorldListScreen(thePID)
+WorldListScreen()
 {
-   if ((inputMethod = "key") or (!WinActive("ahk_pid" thePID)))
+   if ((inputMethod = "key") or (!WinActive("Minecraft")))
    {
       SetKeyDelay, 0
-      ControlSend, ahk_parent, {Tab}{Tab}{Tab}, ahk_pid %thePID%
+      ControlSend, ahk_parent, {Tab}{Tab}{Tab}
       Sleep, %screenDelay%
-      ControlSend, ahk_parent, {enter}, ahk_pid %thePID%
+      ControlSend, ahk_parent, {enter}
       SetKeyDelay, 1
    }
    else
@@ -238,44 +247,44 @@ WorldListScreen(thePID)
    }
 }
 
-CreateNewWorldScreen(thePID, savesDirectory)
+CreateNewWorldScreen()
 {
-   NameWorld(thePID)
-   if ((inputMethod = "key") or (!WinActive("ahk_pid" thePID)))
+   NameWorld()
+   if ((inputMethod = "key") or (!WinActive("Minecraft")))
    {
       SetKeyDelay, 0
       if (difficulty = "Normal")
       {
-         ControlSend, ahk_parent, {Tab}{Tab}{Tab}{Tab}{Tab}{Tab}, ahk_pid %thePID%
+         ControlSend, ahk_parent, {Tab}{Tab}{Tab}{Tab}{Tab}{Tab}
       }
       else
       {
-         ControlSend, ahk_parent, `t, ahk_pid %thePID%
+         ControlSend, ahk_parent, `t
          if (difficulty = "Hardcore")
          {
-            ControlSend, ahk_parent, {enter}, ahk_pid %thePID%
+            ControlSend, ahk_parent, {enter}
          }
-         ControlSend, ahk_parent, `t, ahk_pid %thePID%
+         ControlSend, ahk_parent, `t
          if (difficulty != "Hardcore")
          {
-            ControlSend, ahk_parent, {enter}, ahk_pid %thePID%
+            ControlSend, ahk_parent, {enter}
             if (difficulty != "Hard")
             {
-               ControlSend, ahk_parent, {enter}, ahk_pid %thePID%
+               ControlSend, ahk_parent, {enter}
                if (difficulty != "Peaceful")
                {
-                  ControlSend, ahk_parent, {enter}, ahk_pid %thePID%
+                  ControlSend, ahk_parent, {enter}
                }
             }
          }
          if (difficulty != "Hardcore")
          {
-            ControlSend, ahk_parent, {Tab}{Tab}, ahk_pid %thePID%
+            ControlSend, ahk_parent, {Tab}{Tab}
          }
-         ControlSend, ahk_parent, {Tab}{Tab}, ahk_pid %thePID%
+         ControlSend, ahk_parent, {Tab}{Tab}
       }
       Sleep, %screenDelay%
-      ControlSend, ahk_parent, {enter}, ahk_pid %thePID%
+      ControlSend, ahk_parent, {enter}
       SetKeyDelay, 1
    }
    else
@@ -285,7 +294,7 @@ CreateNewWorldScreen(thePID, savesDirectory)
       {
          if (GUIscale = 4)
          {
-            if (InFullscreen(savesDirectory))
+            if (InFullscreen())
                MouseClick, L, W * 653 // 1936, H * 450 // 1056, 1
             else
                MouseClick, L, W * 653 // 1936, H * 480 // 1056, 1
@@ -299,7 +308,7 @@ CreateNewWorldScreen(thePID, savesDirectory)
       {
          if (GUIscale = 4)
          {
-            if (InFullscreen(savesDirectory))
+            if (InFullscreen())
                MouseClick, L, W * 1303 // 1936, H * 450 // 1056, 1
             else
                MouseClick, L, W * 1303 // 1936, H * 480 // 1056, 1
@@ -312,7 +321,7 @@ CreateNewWorldScreen(thePID, savesDirectory)
          {
             if (GUIscale = 4)
             {
-               if (InFullscreen(savesDirectory))
+               if (InFullscreen())
                   MouseClick, L, W * 1303 // 1936, H * 450 // 1056, 1
                else
                   MouseClick, L, W * 1303 // 1936, H * 480 // 1056, 1
@@ -325,7 +334,7 @@ CreateNewWorldScreen(thePID, savesDirectory)
             {
                if (GUIscale = 4)
                {
-                  if (InFullscreen(savesDirectory))
+                  if (InFullscreen())
                      MouseClick, L, W * 1303 // 1936, H * 450 // 1056, 1
                   else
                      MouseClick, L, W * 1303 // 1936, H * 480 // 1056, 1
@@ -340,7 +349,7 @@ CreateNewWorldScreen(thePID, savesDirectory)
       Sleep, %screenDelay%
       if (GUIscale = 4)
       {
-         if (InFullscreen(savesDirectory))
+         if (InFullscreen())
             MouseClick, L, W * 1295 // 1936, H * 780 // 1056, 1
          else
             MouseClick, L, W * 1295 // 1936, H * 830 // 1056, 1
@@ -352,20 +361,20 @@ CreateNewWorldScreen(thePID, savesDirectory)
    }
 }
 
-MoreWorldOptionsScreen(thePID)
+MoreWorldOptionsScreen()
 {
-   if ((inputMethod = "key") or (!WinActive("ahk_pid" thePID)))
+   if ((inputMethod = "key") or (!WinActive("Minecraft")))
    {
       SetKeyDelay, 0
-      ControlSend, ahk_parent, {Tab}{Tab}{Tab}, ahk_pid %thePID%
+      ControlSend, ahk_parent, {Tab}{Tab}{Tab}
       SetKeyDelay, 1
       Sleep, 1
-      InputSeed(thePID)
+      InputSeed()
       Sleep, 1
       SetKeyDelay, 0
-      ControlSend, ahk_parent, {Tab}{Tab}{Tab}{Tab}{Tab}{Tab}, ahk_pid %thePID%
+      ControlSend, ahk_parent, {Tab}{Tab}{Tab}{Tab}{Tab}{Tab}
       Sleep, %screenDelay%
-      ControlSend, ahk_parent, {enter}, ahk_pid %thePID%
+      ControlSend, ahk_parent, {enter}
       SetKeyDelay, 1
    }
    else
@@ -375,7 +384,7 @@ MoreWorldOptionsScreen(thePID)
          MouseClick, L, W * 963 // 1936, H * 310 // 1056, 1
       else
          MouseClick, L, W * 963 // 1936, H * 225 // 1056, 1
-      InputSeed(thePID)
+      InputSeed()
       Sleep, %screenDelay%
       if (GUIscale = 4)
          MouseClick, L, W * 653 // 1936, H * 978 // 1056, 1
@@ -384,11 +393,49 @@ MoreWorldOptionsScreen(thePID)
    }
 }
 
-NameWorld(thePID)
+PossiblyPause()
+{
+   Sleep, 2000
+   if ((pauseOnLoad = "Yes") or (doAutoResets = "Yes") or (activateMCOnLoad = "Yes") or (fullscreenOnLoad = "Yes"))
+   {
+      Loop
+      {
+         WinGetTitle, Title, ahk_exe javaw.exe
+         if (InStr(Title, "player") or InStr(Title, "Instance"))
+         {
+            if ((InStr(previousTitle, "Minecraft")) && (!InStr(previousTitle, "player") && !InStr(previousTitle, "Instance")))
+            {
+               if (doAutoResets = "Yes")
+               {
+                  Sleep, 20
+                  oldClipboard := Clipboard
+                  ControlSend, ahk_parent, {F3 Down}cd{F3 Up}
+                  ControlSend, ahk_parent, {Esc}
+               }
+               else
+               {
+                  if (pauseOnLoad = "Yes")
+                     ControlSend, ahk_parent, {Esc}
+                  if ((activateMCOnLoad = "Yes") or (fullscreenOnLoad = "Yes"))
+                     WinActivate, ahk_exe javaw.exe
+                  if ((fullscreenOnLoad = "Yes") && !(InFullscreen()))
+                     ControlSend, ahk_parent, {F11}
+               }
+            }
+            break
+         }
+         Sleep, 50
+         previousTitle := Title
+      }
+      
+   }
+}
+
+NameWorld()
 {
    if (worldName != "New World")
    {
-      if WinActive("ahk_pid" thePID)
+      if WinActive("Minecraft")
       {
          SendInput, ^a
          Sleep, 1
@@ -397,11 +444,11 @@ NameWorld(thePID)
       }
       else
       {
-         ControlSend, ahk_parent, {Control down}, ahk_pid %thePID%
-         ControlSend, ahk_parent, a, ahk_pid %thePID%
-         ControlSend, ahk_parent, {Control up}, ahk_pid %thePID%
-         ControlSend, ahk_parent, {BackSpace}, ahk_pid %thePID%
-         ControlSend, ahk_parent, %worldName%, ahk_pid %thePID%
+         ControlSend, ahk_parent, {Control down}
+         ControlSend, ahk_parent, a
+         ControlSend, ahk_parent, {Control up}
+         ControlSend, ahk_parent, {BackSpace}
+         ControlSend, ahk_parent, %worldName%
       }
    }
    if (countAttempts = "Yes")
@@ -413,7 +460,7 @@ NameWorld(thePID)
          FileDelete, SSG_1_16.txt
       WorldNumber += 1
       FileAppend, %WorldNumber%, SSG_1_16.txt
-      if WinActive("ahk_pid" thePID)
+      if WinActive("Minecraft")
       {
          Sleep, 1
          SendInput, %WorldNumber%
@@ -421,37 +468,37 @@ NameWorld(thePID)
       }
       else
       {
-         ControlSend, ahk_parent, %WorldNumber%, ahk_pid %thePID%
+         ControlSend, ahk_parent, %WorldNumber%
       }
    }
 }
 
-InputSeed(thePID)
+InputSeed()
 {
-   if WinActive("ahk_pid" thePID)
+   if WinActive("Minecraft")
    {
       SendInput, %SEED%
    }
    else
    {
-      ControlSend, ahk_parent, %SEED%, ahk_pid %thePID%
+      ControlSend, ahk_parent, %SEED%
    }
 }
 
-ExitWorld(thePID, fromPause := false)
+ExitWorld(manualReset := True)
 {
-   if (!fromPause)
+   if (manualReset)
    {
-      ShiftTab(thePID)
-      ControlSend, ahk_parent, {Enter}, ahk_pid %thePID%
-      ControlSend, ahk_parent, {Esc}, ahk_pid %thePID%
+      ShiftTab(1)
+      ControlSend, ahk_parent, {Enter}
+      ControlSend, ahk_parent, {Esc}
+      ;ChangeRD()
    }
-   ShiftTab(thePID)
-   ControlSend, ahk_parent, {Enter}, ahk_pid %thePID%
-   
+   ShiftTab(1)
+   ControlSend, ahk_parent, {Enter}
 }
 
-getMostRecentFile(savesDirectory)
+getMostRecentFile()
 {
 	counter := 0
 	Loop, Files, %savesDirectory%\*.*, D
@@ -472,19 +519,23 @@ getMostRecentFile(savesDirectory)
    return (recentFile)
 }
 
-DoEverything(thePID, savesDirectory, fromPause := false)
+DoEverything(manualReset := True)
 {
-   WinGetTitle, Title, ahk_pid %thePID%
+   WinGetTitle, Title, ahk_exe javaw.exe
+   getFlintStuff := False
    if (InStr(Title, "player") or InStr(Title, "Instance"))
-      ExitWorld(thePID, fromPause)
-   if (InFullscreen(savesDirectory))
    {
-      ControlSend, ahk_parent, {F11}, ahk_pid %thePID%
+      ExitWorld(manualReset)
+      getFlintStuff := True
+   }
+   if (InFullscreen() && ((windowedReset = "Yes")))
+   {
+      ControlSend, ahk_parent, {F11}
       Sleep, 50
    }
    startTime := A_TickCount
    confirmedExit := False
-   lastWorld := getMostRecentFile(savesDirectory)
+   lastWorld := getMostRecentFile()
    lockFile := lastWorld . "\session.lock"
    Loop
    {
@@ -492,21 +543,23 @@ DoEverything(thePID, savesDirectory, fromPause := false)
       Sleep, 10
       if (ErrorLevel = 0)
       {
+         if ((trackFlint = "Yes") && getFlintStuff)
+            TrackFlint()
          Sleep, 50
          break
       }
       if (!confirmedExit && (A_TickCount > (startTime + 100)))
       {
-         WinGetTitle, theTitle, ahk_pid %thePID%
+         WinGetTitle, theTitle, ahk_exe javaw.exe
          if (InStr(Title, "player") or InStr(Title, "Instance"))
-            ControlSend, ahk_parent, {Enter}, ahk_pid %thePID%
+            ControlSend, ahk_parent, {Enter}
          confirmedExit := True
       }
    }
    return (lastWorld)
 }
 
-DeleteOrMove(lastWorld, savesDirectory)
+DeleteOrMove(lastWorld)
 {
    array := StrSplit(lastWorld, "\saves\")
    justTheWorld := array[2]
@@ -528,7 +581,7 @@ DeleteOrMove(lastWorld, savesDirectory)
    }
 }
 
-InFullscreen(savesDirectory)
+InFullscreen()
 {
    optionsFile := StrReplace(savesDirectory, "saves", "options.txt")
    FileReadLine, fullscreenLine, %optionsFile%, 17
@@ -538,160 +591,34 @@ InFullscreen(savesDirectory)
       return 0
 }
 
-DoAReset(thePID, savesDirectory, removePrevious, fromPause := false)
+global version = getVersion()
+getVersion()
 {
-   lastWorld := DoEverything(thePID, savesDirectory, fromPause)
-   CreateWorld(thePID, savesDirectory)
-   if (removePrevious)
-      DeleteOrMove(lastWorld, savesDirectory)
+   optionsFile := StrReplace(savesDirectory, "saves", "options.txt")
+   FileReadLine, versionLine, %optionsFile%, 1
+   arr := StrSplit(versionLine, ":")
+   dataVersion := arr[2]
+   if (dataVersion > 2600)
+      return (17)
+   else
+      return (16)
 }
 
-getPID(n)
+PauseOnLostFocus() ;used on script startup
 {
-   MsgBox, Close this message, click on Instance %n%, and press the P key after you have clicked on that instance.
-   Loop
-   {
-      if GetKeyState("P", "P")
-      {
-         WinGetActiveTitle, title
-         if (InStr(title, "Minecraft"))
-         {
-            WinGet, thePID, PID, A
-            return (thePID)
-         }
-         else
-            MsgBox, This is not a Minecraft window. Close this message, click on Instance %n%, and press the P key after you have clicked on that instance.
-      }
-   }
+   optionsFile := StrReplace(savesDirectory, "saves", "options.txt")
+   if (version = 16)
+      FileReadLine, optionLine, %optionsFile%, 45
+   else
+      FileReadLine, optionLine, %optionsFile%, 48
+   if (InStr(optionLine, "true"))
+      return 1
+   else
+      return 0
 }
 
-getCoords(n)
-{
-   CoordMode, Mouse, Screen
-   MsgBox, Close this message, hover over the icon in your taskbar for Instance %n%, and press the I key after your cursor is over the icon.
-   Loop
-   {
-      if GetKeyState("I", "P")
-      {
-         MouseGetPos, X, Y
-         return [X, Y]
-      }
-   }
-}
-
-ResetAndSwitch(removePrevious := True)
-{
-   savesDirectory := getSavesDirectory()
-   WinGet, thePID, PID, A
-   DoAReset(thePID, savesDirectory, removePrevious)
-   if (numInstances > 1)
-   {
-      thePID := Switch(thePID)
-      savesDirectory := getSavesDirectory()
-   }
-   worldLoadStuff(thePID, savesDirectory)
-}
-
-worldLoadStuff(thePID, savesDirectory)
-{
-   lastWorld := getMostRecentFile(savesDirectory)
-   lockFile := lastWorld . "\session.lock"
-   FileRead, sessionlockfile, %lockFile%
-   if (ErrorLevel = 0)
-      return
-   if ((pauseOnLoad = "Yes") or (fullscreenOnLoad = "Yes"))
-   {
-      Loop
-      {
-         WinGetActiveTitle, Title
-         if (InStr(Title, "player") or InStr(Title, "Instance"))
-         {
-            if ((InStr(previousTitle, "Minecraft")) && (!InStr(previousTitle, "player") && !InStr(previousTitle, "Instance")))
-            {
-               if (WinActive("Minecraft"))
-               {
-                  if (pauseOnLoad = "Yes")
-                     Send, {Esc}
-                  if ((fullscreenOnLoad = "Yes") && !(InFullscreen(savesDirectory)))
-                     Send, {F11}
-               }
-            }
-            break
-         }
-         Sleep, 20
-         previousTitle := Title
-      }
-   }
-}
-
-Switch(thePID)
-{
-   if (thePID = PID1)
-   {
-      clickOn(2)
-      return (PID2)
-   }
-   if (thePID = PID2)
-   {
-      if (numInstances = 2)
-      {
-         clickOn(1)
-         return (PID1)
-      }
-      else
-      {
-         clickOn(3)
-         return (PID3)
-      }
-   }
-   if (thePID = PID3)
-   {
-      if (numInstances = 3)
-      {
-         clickOn(1)
-         return (PID1)
-      }
-      else
-      {
-         clickOn(4)
-         return (PID4)
-      }
-   }
-   if (thePID = PID4)
-   {
-      clickOn(1)
-      return (PID1)
-   }
-}
-
-clickOn(n)
-{
-   CoordMode, Mouse, Screen
-   if (n = 1)
-   {
-      MouseClick, L, icon1[1], icon1[2]
-   }
-   if (n = 2)
-   {
-      MouseClick, L, icon2[1], icon2[2]
-   }
-   if (n = 3)
-   {
-      MouseClick, L, icon3[1], icon3[2]
-   }
-   if (n = 4)
-   {
-      MouseClick, L, icon4[1], icon4[2]
-   }
-   CoordMode, Mouse, Relative
-}
-
-Test()
-{
-   
-}
-
-getGUIscale(savesDirectory) ;used on script startup
+global GUIscale
+getGUIscale() ;used on script startup
 {
    optionsFile := StrReplace(savesDirectory, "saves", "options.txt")
    if (version = 16)
@@ -712,50 +639,305 @@ getGUIscale(savesDirectory) ;used on script startup
       return 0
 }
 
-global version = getVersion()
-getVersion()
+getIGT() ;unused
 {
-   optionsFile := StrReplace(savesDirectory, "saves", "options.txt")
-   FileReadLine, versionLine, %optionsFile%, 1
-   arr := StrSplit(versionLine, ":")
-   dataVersion := arr[2]
-   if (dataVersion > 2600)
-      return (17)
-   else
-      return (16)
+   currentWorld := getMostRecentFile()
+   statsFolder := currentWorld . "\stats"
+   Loop, Files, %statsFolder%\*.*, F
+   {
+      statsFile := A_LoopFileLongPath
+   }
+   FileReadLine, fileText, %statsFile%, 1
+   statLocation := InStr(fileText, "play_one_minute")
+   cutOutPrevious := SubStr(fileText, statLocation)
+   statArray := StrSplit(cutOutPrevious, ",")
+   theStat := statArray[1]
+   justTheTwo := StrSplit(theStat, ":")
+   justTheNumber := justTheTwo[2]
+   return (justTheNumber)
 }
 
-BackgroundReset(thePID, savesDirectory)
+isPaused() ;unused
 {
-   if (!WinActive("ahk_pid" thePID))
+   oldIGT := getIGT()
+   ControlSend, ahk_parent, {Esc}
+   Sleep, 50
+   newIGT := getIGT()
+   ;MsgBox, %oldIGT% %newIGT%
+   if (newIGT = oldIGT)
    {
-      DoAReset(thePID, savesDirectory, true, true)
+      return (0)
+   }
+   else
+   {
+      return (1)
    }
 }
 
-if ((numInstances != 1) and (numInstances != 2) and (numInstances != 3) and (numInstances != 4))
+DoAReset(removePrevious := True, manualReset := True)
 {
-   MsgBox, You can only use 1, 2, 3, or 4 instances. Right click on the script file, click edit script, and change the number after "global numInstances := " to 1, 2, 3, or 4.
-   ExitApp
+   lastWorld := DoEverything(manualReset)
+   CreateWorld()
+   if (removePrevious)
+      DeleteOrMove(lastWorld)
+   UpdateStats()
+   PossiblyPause()
 }
-if ((!FileExist(savesDirectory1)) or (!InStr(savesDirectory1, "\saves")))
+
+DoSomeResets(removePrevious := True)
 {
-   MsgBox, Your saves directory for instance 1 is invalid. Right click on the script file, click edit script, and put thep correct saves directory, then save the script and run it again.
-   ExitApp
+   counter := 0
+   Loop
+   {
+      if (counter = 0)
+      {
+         DoAReset(removePrevious)
+         if (doAutoResets = "No")
+            break
+      }
+      else
+         DoAReset(True, False)
+      WaitForClipboardUpdate()
+      if (goodSpawn())
+      {
+         AlertUser()
+         break
+      }
+      counter += 1
+   }
 }
-if (((!FileExist(savesDirectory2)) or (!InStr(savesDirectory2, "\saves"))) and (numInstances >= 2))
+
+WaitForClipboardUpdate()
 {
-   MsgBox, Your saves directory for instance 2 is invalid. Right click on the script file, click edit script, and put the correct saves directory, then save the script and run it again.
-   ExitApp
+   startTime = A_TickCount
+   Loop
+   {
+      if ((A_TickCount - clipboardLoadTime) > startTime)
+         break
+      if (Clipboard != oldClipboard)
+         break
+      Sleep, 10
+   }
 }
-if (((!FileExist(savesDirectory3)) or (!InStr(savesDirectory3, "\saves"))) and (numInstances >= 3))
+
+goodSpawn()
 {
-   MsgBox, Your saves directory for instance 3 is invalid. Right click on the script file, click edit script, and put the correct saves directory, then save the script and run it again.
-   ExitApp
+   array1 := StrSplit(Clipboard, " ")
+   xCoord := array1[7]
+   zCoord := array1[9]
+   if (inList(xCoord, zCoord, "whitelist.txt"))
+      return True
+   if (inList(xCoord, zCoord, "blacklist.txt"))
+      return False
+   xDisplacement := xCoord - centerPointX
+   zDisplacement := zCoord - centerPointZ
+   distance := Sqrt((xDisplacement * xDisplacement) + (zDisplacement * zDisplacement))
+   if (distance <= radius)
+      return True
+   else
+      return False
 }
-if (((!FileExist(savesDirectory4)) or (!InStr(savesDirectory4, "\saves"))) and (numInstances >= 4))
+
+AddToBlacklist()
 {
-   MsgBox, Your saves directory for instance 4 is invalid. Right click on the script file, click edit script, and put the correct saves directory, then save the script and run it again.
+   array1 := StrSplit(Clipboard, " ")
+   xCoord := array1[7]
+   zCoord := array1[9]
+   theString := xCoord . "," . zCoord . ";" . xCoord . "," . zCoord
+   if (!FileExist("blacklist.txt"))
+      FileAppend, %theString%, blacklist.txt
+   else
+      FileAppend, `n%theString%, blacklist.txt
+}
+
+inList(xCoord, zCoord, fileName)
+{
+   if (FileExist(fileName))
+   {
+      Loop, read, %fileName%
+      {
+         arr0 := StrSplit(A_LoopReadLine, ";")
+         corner1 := arr0[1]
+         corner2 := arr0[2]
+         arr1 := StrSplit(corner1, ",")
+         arr2 := StrSplit(corner2, ",")
+         X1 := arr1[1]
+         Z1 := arr1[2]
+         X2 := arr2[1]
+         Z2 := arr2[2]
+         if ((((xCoord <= X1) && (xCoord >= X2)) or ((xCoord >= X1) && (xCoord <= X2))) and (((zCoord <= Z1) && (zCoord >= Z2)) or ((zCoord >= Z1) && (zCoord <= Z2))))
+            return True
+      }
+   }
+   return False
+}
+
+AlertUser()
+{
+   if (playSound = "Yes")
+   {
+      if (FileExist("spawnready.mp3"))
+         SoundPlay, spawnready.mp3
+      else
+         SoundPlay *16
+   }
+   if ((activateMCOnLoad = "Yes") or (fullscreenOnLoad = "Yes"))
+      WinActivate, ahk_exe javaw.exe
+   if (message != "")
+      MsgBox, %message%
+   if ((fullscreenOnLoad = "Yes") && !(InFullscreen()))
+      ControlSend, ahk_parent, {F11}
+}
+
+TrackFlint()
+{
+   headers := "Time that run ended, Flint obtained, Gravel mined"
+   if (!FileExist("SSGstats.csv"))
+   {
+      FileAppend, %headers%, SSGstats.csv
+   }
+   numbersArray := gravelDrops()
+   flintDropped := numbersArray[1]
+   gravelMined := numbersArray[2]
+   theTime := readableTime()
+   numbers := theTime . "," . flintDropped . "," . gravelMined
+   FileAppend, `n, SSGstats.csv
+   FileAppend, %numbers%, SSGstats.csv
+}
+
+gravelDrops()
+{
+   currentWorld := getMostRecentFile()
+   statsFolder := currentWorld . "\stats"
+   Loop, Files, %statsFolder%\*.*, F
+   {
+      statsFile := A_LoopFileLongPath
+   }
+   FileReadLine, fileText, %statsFile%, 1
+   
+   minedLocation := InStr(fileText, "minecraft:mined")
+   if (minedLocation)
+   {
+      gravelLocation := InStr(fileText, "minecraft:gravel", , minedLocation)
+      if (gravelLocation)
+      {
+         postMined := SubStr(fileText, gravelLocation)
+         gravelArray1 := StrSplit(postMined, ":")
+         gravelSubString := gravelArray1[3]
+         gravelArray2 := StrSplit(gravelSubString, "}")
+         gravelSubString2 := gravelArray2[1]
+         gravelArray3 := StrSplit(gravelSubString2, ",")
+         gravelMined := gravelArray3[1]
+      }
+      else
+         gravelMined := 0
+   }
+   else
+      gravelMined := 0
+   
+   pickedupLocation := Instr(fileText, "minecraft:picked_up")
+   if (pickedupLocation)
+   {
+      flintLocation := InStr(fileText, "minecraft:flint", , pickedupLocation)
+      if (flintLocation)
+      {
+         postPickedup := SubStr(fileText, flintLocation)
+         flintArray1 := StrSplit(postPickedup, ":")
+         flintSubString := flintArray1[3]
+         flintArray2 := StrSplit(flintSubString, "}")
+         flintSubString2 := flintArray2[1]
+         flintArray3 := StrSplit(flintSubString2, ",")
+         flintCollected := flintArray3[1]
+      }
+      else
+         flintCollected := 0
+   }
+   else
+      flintCollected := 0
+   
+   return ([flintCollected, gravelMined])
+}
+
+readableTime()
+{
+   theTime := A_Now
+   year := theTime // 10000000000
+   month := mod(theTime, 10000000000)
+   month := month // 100000000
+   day := mod(theTime, 100000000)
+   day := day // 1000000
+   hour := mod(theTime, 1000000)
+   hour := hour // 10000
+   minute := mod(theTime, 10000)
+   minute := minute // 100
+   second := mod(theTime, 100)
+   if (second < 10)
+      second := "0" . second
+   if (minute < 10)
+      minute := "0" . minute
+   if (hour < 10)
+      hour := "0" . hour
+   if (day < 10)
+      day := "0" . day
+   if (month < 10)
+      month := "0" . month
+   timeString := month . "/" . day . "/" . year . " " . hour . ":" . minute . ":" second
+   return (timeString)
+}
+
+UpdateStats()
+{
+   if (FileExist("SSGstats.csv"))
+   {
+      FileDelete, SSGstats.txt
+      headerRead := false
+      totalFlint := 0
+      totalGravel := 0
+      totalAttempts := 0
+      todayFlint := 0
+      todayGravel := 0
+      todayAttempts := 0
+      Loop, read, SSGstats.csv
+      {
+         if (headerRead)
+         {
+            theArray := StrSplit(A_LoopReadLine, ",")
+            totalFlint += theArray[2]
+            totalGravel += theArray[3]
+            totalAttempts += 1
+            currentDate := A_Now // 1000000
+            readTime := theArray[1]
+            dateTimeArray := StrSplit(readTime, " ")
+            rowDate := dateTimeArray[1]
+            dateArray := StrSplit(rowDate, "/")
+            theMonth := dateArray[1]
+            theDay := dateArray[2]
+            theYear := dateArray[3]
+            readDate := theYear . theMonth . theDay
+            if (readDate = currentDate)
+            {
+               todayFlint += theArray[2]
+               todayGravel += theArray[3]
+               todayAttempts += 1
+            }
+         }
+         headerRead := true
+      }
+      flintRate := 100 * totalFlint / totalGravel
+      dailyFlintRate := 100 * todayFlint / todayGravel
+      theString := totalAttempts . " attempts tracked" . "`n" . totalFlint . " flint drops out of " . totalGravel . " gravel mined for a rate of " flintRate . " percent" . "`n`n" . todayAttempts . " attempts tracked today" . "`n" . todayFlint . " flint drops out of " . todayGravel . " gravel mined for a rate of " dailyFlintRate . " percent"
+      FileAppend, %theString%, SSGstats.txt
+   }
+}
+
+Test()
+{
+   UpdateStats()
+}
+
+if ((!FileExist(savesDirectory)) or (!InStr(savesDirectory, "\saves")))
+{
+   MsgBox, Your saves directory is invalid. Right click on the script file, click edit script, and put the correct saves directory, then save the script and run it again.
    ExitApp
 }
 if ((previousWorldOption != "move") and (previousWorldOption != "delete"))
@@ -773,9 +955,9 @@ if ((inputMethod != "key") and (inputMethod != "click"))
    MsgBox, Choose a valid option for what input method to use. Go to the Options section of this script and choose either "key" or "click" after the words "global inputMethod := "
    ExitApp
 }
-if ((!getGUIscale(savesDirectory1) or !getGUIscale(savesDirectory2)) && (inputMethod != "key"))
+if ((windowedReset != "Yes") and (windowedReset != "No"))
 {
-   MsgBox, Your GUI scale is not supported with the click macro. Either change your GUI scale to 0, 3, or 4, or change the input method to "key". Then run the script again.
+   MsgBox, Choose a valid option for whether or not to do windowed resets. Go to the Options section of this script and choose either "Yes" or "No" after the words "global windowedReset := "
    ExitApp
 }
 if ((pauseOnLoad != "Yes") and (pauseOnLoad != "No"))
@@ -783,9 +965,39 @@ if ((pauseOnLoad != "Yes") and (pauseOnLoad != "No"))
    MsgBox, Choose a valid option for whether or not to pause on world load. Go to the Options section of this script and choose either "Yes" or "No" after the words "global pauseOnLoad := "
    ExitApp
 }
+if ((!getGUIscale()) && (inputMethod != "key"))
+{
+   MsgBox, Your GUI scale is not supported with the click macro. Either change your GUI scale to 0, 3, or 4, or change the input method to "key". Then run the script again.
+   ExitApp
+}
+if ((PauseOnLostFocus()) && (doAutoResets = "Yes") && (f3pWarning = "enabled"))
+{
+   MsgBox, If you would like to use the autoresetter while tabbed out, you will need to disable the "pause on lost focus" feature by pressing F3 + P in-game. If you will not be tabbed out while using the autoresetter, then don't worry about this, and you can disable this warning by changing "global f3pWarning := "enabled"" to "global f3pWarning := "disabled"" This is just a warning message and it will not exit the script, so you do not need to restart the script if you see this.
+}
+if ((playSound != "Yes") and (playSound != "No"))
+{
+   MsgBox, Choose a valid option for whether or not to play a sound. Go to the Options section of this script and choose either "Yes" or "No" after the words "global playSound := "
+   ExitApp
+}
+if ((activateMCOnLoad != "Yes") and (activateMCOnLoad != "No"))
+{
+   MsgBox, Choose a valid option for whether or not to activate Minecraft when the load is complete. Go to the Options section of this script and choose either "Yes" or "No" after the words "global activateMCOnLoad := "
+   ExitApp
+}
 if ((fullscreenOnLoad != "Yes") and (fullscreenOnLoad != "No"))
 {
    MsgBox, Choose a valid option for whether or not to fullscreen Minecraft when the load is complete. Go to the Options section of this script and choose either "Yes" or "No" after the words "global fullscreenOnLoad := "
+   ExitApp
+}
+;this feature does not work right now: global 2RDOnExit = "No" ; change this to "Yes" if you would like to automatically go to 2 render distance when you reset from a previous world (may not work depending on your resolution, and will not work if you don't have sodium)
+;if ((2RDOnExit != "Yes") and (2RDOnExit != "No"))
+;{
+;   MsgBox, Choose a valid option for whether or not to go to 2 render distance when exiting a world. Go to the Options section of this script and choose either "Yes" or "No" after the words "global 2RDOnExit := "
+;   ExitApp
+;}
+if ((trackFlint != "Yes") and (trackFlint != "No"))
+{
+   MsgBox, Choose a valid option for whether or not to track flint rates. Go to the Options section of this script and choose either "Yes" or "No" after the words "global trackFlint := "
    ExitApp
 }
 
@@ -793,75 +1005,34 @@ SetDefaultMouseSpeed, 0
 SetMouseDelay, 0
 SetKeyDelay , 1
 SetWinDelay, 1
-
-if (numInstances > 1)
-{
-   global PID1 := getPID(1)
-   global PID2 := getPID(2)
-   if (numInstances > 2)
-   {
-      global PID3 := getPID(3)
-      if (numInstances > 3)
-         global PID4 := getPID(4)
-   }
-}
-if (numInstances > 1)
-{
-   global icon1 := getCoords(1)
-   global icon2 := getCoords(2)
-   if (numInstances > 2)
-   {
-      global icon3 := getCoords(3)
-      if (numInstances > 3)
-         global icon4 := getCoords(4)
-   }
-}
-CoordMode, Mouse, Relative
+global oldClipboard
 
 #IfWinActive, Minecraft
 {
-F5::Reload ; Reload keybind
+F5::Reload   
 
-PgUp:: ; Reset keybind that doesn't remove previous world
-   ResetAndSwitch(false)
+PgUp:: ; This is where the keybind for creating a world is set.
+   DoSomeResets(False)
 return
 
-PgDn:: ; Reset keybind.
-   ResetAndSwitch()
+PgDn:: ; This is where the keybind for creating a world and deleting/moving the previous one is set.
+   DoSomeResets()
 return
 
 End:: ; This is where the keybind for opening to LAN and perching is set.
    Perch()
 return
 
-NumPad1::
-   BackgroundReset(PID1, savesDirectory1)
+Home:: ; This is where the keybind for exiting a world is set.
+   ExitWorld()
 return
 
-NumPad2::
-   BackgroundReset(PID2, savesDirectory2)
+^B:: ; This is where the keybind is set for adding a spawn to the blacklisted spawns.
+   AddToBlacklist()
 return
 
-NumPad3::
-   BackgroundReset(PID3, savesDirectory3)
-return
-
-NumPad4::
-   BackgroundReset(PID4, savesDirectory4)
-return
-
-Home::
-   BackgroundReset(PID1, savesDirectory1)
-   BackgroundReset(PID2, savesDirectory2)
-   if (numInstances >= 3)
-   {
-      BackgroundReset(PID3, savesDirectory3)
-      if (numInstances >= 4)
-         BackgroundReset(PID4, savesDirectory4)
-   }
-return
-}
 Insert::
    Test()
 return
+}
 
