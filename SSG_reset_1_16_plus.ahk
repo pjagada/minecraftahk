@@ -491,18 +491,23 @@ DoEverything(thePID, savesDirectory, fromPause := false)
 
 DeleteOrMove(lastWorld, savesDirectory)
 {
-   if (previousWorldOption = "delete")
-      FileRemoveDir, %lastWorld%, 1
-   else if(previousWorldOption = "move")
+   array := StrSplit(lastWorld, "\saves\")
+   justTheWorld := array[2]
+   if (InStr(justTheWorld, "_") != 1)
    {
-      newDir := StrReplace(savesDirectory, "saves", "oldWorlds")
-      if !FileExist(newDir)
+      if (previousWorldOption = "delete")
+         FileRemoveDir, %lastWorld%, 1
+      else if(previousWorldOption = "move")
       {
-         FileCreateDir, %newDir%
+         newDir := StrReplace(savesDirectory, "saves", "oldWorlds")
+         if !FileExist(newDir)
+         {
+            FileCreateDir, %newDir%
+         }
+         newLocation := StrReplace(lastWorld, "saves", "oldWorlds")
+         FileCopyDir, %lastWorld%, %newLocation%%A_Now%
+         FileRemoveDir, %lastWorld%, 1
       }
-      newLocation := StrReplace(lastWorld, "saves", "oldWorlds")
-      FileCopyDir, %lastWorld%, %newLocation%%A_Now%
-      FileRemoveDir, %lastWorld%, 1
    }
 }
 

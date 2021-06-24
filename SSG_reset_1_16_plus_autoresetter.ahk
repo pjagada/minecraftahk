@@ -80,14 +80,14 @@ global fullscreenOnLoad = "No" ; change this to "Yes" if you would like the macr
 ; Autoresetter Options:
 global doAutoResets := "Yes" ; "Yes" or "No" for whether or not to run the autoresetter based on spawns
 ; The autoresetter will automatically reset if your spawn is greater than a certain number of blocks away from a certain point (ignoring y)
-global centerPointX := 163.5 ; this is the x coordinate of that certain point (by default it's the x coordinate of the stairs of the first house of 2483313382402348964)
-global centerPointZ := 194.5 ; this is the z coordinate of that certain point (by default it's the z coordinate of the stairs of the first house of 2483313382402348964)
-global radius := 6 ; if this is 10 for example, the autoresetter will not reset if you are within 10 blocks of the point specified above. Set this smaller for better spawns but more resets
+global centerPointX := 162.7 ; this is the x coordinate of that certain point (by default it's the x coordinate of being pushed up against the window of the blacksmith of -3294725893620991126)
+global centerPointZ := 194.5 ; this is the z coordinate of that certain point (by default it's the z coordinate of being pushed up against the window of the blacksmith of -3294725893620991126)
+global radius := 13 ; if this is 10 for example, the autoresetter will not reset if you are within 10 blocks of the point specified above. Set this smaller for better spawns but more resets
 ; if you would only like to reset the blacklisted spawns, then just set this number really large (1000 should be good enough), and if you would only like to play out whitelisted spawns, then just make this number negative
 global f3pWarning := "enabled" ; change this to "disabled" once you've seen the warning
 global message := "" ; what message will pop up when a good spawn is found (if you don't want a message to pop up, change this to "")
 global playSound := "Yes" ; "Yes" or "No" on whether or not to play that Windows sound when good seed is found. To play a custom sound, just save it as spawnready.mp3 in the same folder as this script.
-global clipboardLoadTime := 200 ; increase this if you're getting a lot of false positives, and decrease this if you want to spend less time waiting on the pause menu while it's checking the spawn
+global clipboardLoadTime := 1000 ; increase this if you're getting a lot of false positives, and decrease this if you want to spend less time waiting on the pause menu while it's checking the spawn
 
 fastResetModStuff()
 {
@@ -387,6 +387,7 @@ PossiblyPause()
                if (doAutoResets = "Yes")
                {
                   Sleep, 20
+                  oldClipboard := Clipboard
                   ControlSend, ahk_parent, {F3 Down}cd{F3 Up}
                   ControlSend, ahk_parent, {Esc}
                }
@@ -533,18 +534,23 @@ DoEverything(manualReset := True)
 
 DeleteOrMove(lastWorld)
 {
-   if (previousWorldOption = "delete")
-      FileRemoveDir, %lastWorld%, 1
-   else if(previousWorldOption = "move")
+   array := StrSplit(lastWorld, "\saves\")
+   justTheWorld := array[2]
+   if (InStr(justTheWorld, "_") != 1)
    {
-      newDir := StrReplace(savesDirectory, "saves", "oldWorlds")
-      if !FileExist(newDir)
+      if (previousWorldOption = "delete")
+         FileRemoveDir, %lastWorld%, 1
+      else if(previousWorldOption = "move")
       {
-         FileCreateDir, %newDir%
+         newDir := StrReplace(savesDirectory, "saves", "oldWorlds")
+         if !FileExist(newDir)
+         {
+            FileCreateDir, %newDir%
+         }
+         newLocation := StrReplace(lastWorld, "saves", "oldWorlds")
+         FileCopyDir, %lastWorld%, %newLocation%%A_Now%
+         FileRemoveDir, %lastWorld%, 1
       }
-      newLocation := StrReplace(lastWorld, "saves", "oldWorlds")
-      FileCopyDir, %lastWorld%, %newLocation%%A_Now%
-      FileRemoveDir, %lastWorld%, 1
    }
 }
 
@@ -663,13 +669,26 @@ DoSomeResets(removePrevious := True)
       }
       else
          DoAReset(True, False)
-      Sleep, %clipboardLoadTime%
+      WaitForClipboardUpdate()
       if (goodSpawn())
       {
          AlertUser()
          break
       }
       counter += 1
+   }
+}
+
+WaitForClipboardUpdate()
+{
+   startTime = A_TickCount
+   Loop
+   {
+      if ((A_TickCount - clipboardLoadTime) > startTime)
+         break
+      if (Clipboard != oldClipboard)
+         break
+      Sleep, 10
    }
 }
 
@@ -744,7 +763,6 @@ AlertUser()
 
 Test()
 {
-   MsgBox, %version%
 }
 
 if ((!FileExist(savesDirectory)) or (!InStr(savesDirectory, "\saves")))
@@ -812,6 +830,7 @@ SetDefaultMouseSpeed, 0
 SetMouseDelay, 0
 SetKeyDelay , 1
 SetWinDelay, 1
+global oldClipboard
 
 #IfWinActive, Minecraft
 {
