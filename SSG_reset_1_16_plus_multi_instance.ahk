@@ -40,12 +40,12 @@
 SetWorkingDir %A_ScriptDir%
 
 ; Options:
-global numInstances = 1
+global numInstances = 2
 
-global savesDirectory1 := "C:\Users\prana\AppData\Roaming\mmc-stable-win32\MultiMC\instances\1.17\.minecraft\saves" ; input your minecraft saves directory here. It will probably start with "C:\Users..." and end with "\minecraft\saves"
-global savesDirectory2 := "C:\Users\prana\AppData\Roaming\mmc-stable-win32\MultiMC\instances\1.17 Instance 2\.minecraft\saves" ; same thing here, if you're not using multiple instances, then it doesn't matter what this is
-global savesDirectory3 := "C:\Users\prana\AppData\Roaming\mmc-stable-win32\MultiMC\instances\1.17 Instance 3\.minecraft\saves" ; same thing here, if you're not using more than 2 instances, then it doesn't matter what this is
-global savesDirectory4 := "C:\Users\prana\AppData\Roaming\mmc-stable-win32\MultiMC\instances\1.17 Instance 4\.minecraft\saves" ; same thing here, if you're not using more than 3 instances, then it doesn't matter what this is
+global savesDirectory1 := "C:\Users\prana\AppData\Roaming\mmc-stable-win32\MultiMC\instances\Instance 1\.minecraft\saves" ; input your minecraft saves directory here. It will probably start with "C:\Users..." and end with "\minecraft\saves"
+global savesDirectory2 := "C:\Users\prana\AppData\Roaming\mmc-stable-win32\MultiMC\instances\Instance 2\.minecraft\saves" ; same thing here, if you're not using multiple instances, then it doesn't matter what this is
+global savesDirectory3 := "C:\Users\prana\AppData\Roaming\mmc-stable-win32\MultiMC\instances\Instance 3\.minecraft\saves" ; same thing here, if you're not using more than 2 instances, then it doesn't matter what this is
+global savesDirectory4 := "C:\Users\prana\AppData\Roaming\mmc-stable-win32\MultiMC\instances\Instance 4\.minecraft\saves" ; same thing here, if you're not using more than 3 instances, then it doesn't matter what this is
 global screenDelay := 50 ; Change this value to increase/decrease the number of time (in milliseconds) that each world creation screen is held for. For your run to be verifiable, each of the three screens of world creation must be shown.
 global worldListWait := 1000 ; The macro will wait for the world list screen to show before proceeding, but sometimes this feature doesn't work, especially if you use fullscreen, and always if you're tabbed out during this part.
                             ; In that case, this number (in milliseconds) defines the hard limit that it will wait after clicking on "Singleplayer" before proceeding.
@@ -68,15 +68,14 @@ global fullscreenOnLoad = "No" ; change this to "Yes" if you would like the macr
 global pauseOnLoad := "Yes" ; change this to "No" if you would like the macro to not automatically pause when the world loads in (this also doesn't always work admiraaa but no harm in leaving it on)
 
 
-fastResetModStuff(savesDirectory)
+fastResetModExist(savesDirectory)
 {
    modsFolder := StrReplace(savesDirectory, "saves", "mods")
    Loop, Files, %modsFolder%\*.*, F
    {
       if(InStr(A_LoopFileName, "fast-reset"))
       {
-         Send, +`t
-         break
+         return True
       }
    }
 }
@@ -98,20 +97,42 @@ ShiftTab(thePID)
 getSavesDirectory()
 {
    WinGet, thePID, PID, A
+   OutputDebug, getting saves directory of PID number %thePID%
    if (numInstances > 1)
    {
+      OutputDebug, have to select saves directory from PID since we are on more than one instance
+      OutputDebug, current PID: %thePID%
+      OutputDebug, PID instn 1: %PID1%
+      OutputDebug, PID instn 2: %PID2%
+      OutputDebug, PID instn 3: %PID3%
+      OutputDebug, PID instn 4: %PID4%
       if (thePID = PID1)
+      {
+         OutputDebug, we are on instance 1
          savesDirectory := savesDirectory1
+      }
       else if (thePID = PID2)
+      {
+         OutputDebug, we are on instance 2
          savesDirectory := savesDirectory2
+      }
       else if (thePID = PID3)
+      {
+         OutputDebug, we are on instance 3
          savesDirectory := savesDirectory3
+      }
       else if (thePID = PID4)
+      {
+         OutputDebug, we are on instance 4
          savesDirectory := savesDirectory4
+      }
       return (savesDirectory)
    }
    else
+   {
+      OutputDebug, only using one instance so saves directory is saves directory
       return (savesDirectory1)
+   }
 }
 
 Perch()
@@ -119,9 +140,13 @@ Perch()
    savesDirectory := getSavesDirectory()
    if (version = 17)
    {
+      OutputDebug, 1.17 perch
       Send, {Esc} ; pause
       ShiftTab(2)
-      fastResetModStuff(savesDirectory)
+      if (fastResetModExist(savesDirectory))
+      {
+         ShiftTab(1)
+      }
       Send, {enter} ; open to LAN
       Send, {tab}{tab}{enter} ; cheats on
       Send, `t
@@ -134,9 +159,13 @@ Perch()
    }
    else
    {
+      OutputDebug, 1.16 perch
       Send, {Esc} ; pause
       ShiftTab(2)
-      fastResetModStuff(savesDirectory)
+      if (fastResetModExist(savesDirectory))
+      {
+         ShiftTab(1)
+      }
       Send, {enter} ; open to LAN
       ShiftTab(1)
       Send, {enter} ; cheats on
@@ -210,7 +239,6 @@ EnterSingleplayer(thePID)
 
 CreateWorld(thePID, savesDirectory)
 {
-   CoordMode, Mouse, Window
    EnterSingleplayer(thePID)
    WorldListScreen(thePID)
    CreateNewWorldScreen(thePID, savesDirectory)
@@ -541,22 +569,68 @@ InFullscreen(savesDirectory)
 DoAReset(thePID, savesDirectory, removePrevious, fromPause := false)
 {
    lastWorld := DoEverything(thePID, savesDirectory, fromPause)
+   OutputDebug, reached title screen
    CreateWorld(thePID, savesDirectory)
+   OutputDebug, created world
    if (removePrevious)
+   {
       DeleteOrMove(lastWorld, savesDirectory)
+      OutputDebug, removed previous world
+   }
 }
 
 getPID(n)
 {
-   MsgBox, Close this message, click on Instance %n%, and press the P key after you have clicked on that instance.
+   MsgBox, Close this message, click on Instance %n%, and press the F key after you have clicked on that instance.
    Loop
    {
-      if GetKeyState("P", "P")
+      if GetKeyState("F", "P")
       {
          WinGetActiveTitle, title
          if (InStr(title, "Minecraft"))
          {
             WinGet, thePID, PID, A
+            if (n = 2)
+            {
+               if (thePID = PID1)
+               {
+                  MsgBox, You clicked on the same window for Instance %n% as you did for Instance 1. Close this message to start over.
+                  Reload
+               }
+            }
+            if (n = 3)
+            {
+               if (thePID = PID1)
+               {
+                  MsgBox, You clicked on the same window for Instance %n% as you did for Instance 1. Close this message to start over.
+                  Reload
+               }
+               if (thePID = PID2)
+               {
+                  MsgBox, You clicked on the same window for Instance %n% as you did for Instance 2. Close this message to start over.
+                  Reload
+               }
+            }
+            if (n = 4)
+            {
+               if (thePID = PID1)
+               {
+                  MsgBox, You clicked on the same window for Instance %n% as you did for Instance 1. Close this message to start over.
+                  Reload
+               }
+               if (thePID = PID2)
+               {
+                  MsgBox, You clicked on the same window for Instance %n% as you did for Instance 2. Close this message to start over.
+                  Reload
+               }
+               if (thePID = PID3)
+               {
+                  MsgBox, You clicked on the same window for Instance %n% as you did for Instance 2. Close this message to start over.
+                  Reload
+               }
+            }
+            FileAppend, %thePID%`n, PIDs.txt
+            OutputDebug, wrote PID number %thePID% to the file
             return (thePID)
          }
          else
@@ -565,31 +639,32 @@ getPID(n)
    }
 }
 
-getCoords(n)
-{
-   CoordMode, Mouse, Screen
-   MsgBox, Close this message, hover over the icon in your taskbar for Instance %n%, and press the I key after your cursor is over the icon.
-   Loop
-   {
-      if GetKeyState("I", "P")
-      {
-         MouseGetPos, X, Y
-         return [X, Y]
-      }
-   }
-}
-
 ResetAndSwitch(removePrevious := True)
 {
    savesDirectory := getSavesDirectory()
-   WinGet, thePID, PID, A
-   DoAReset(thePID, savesDirectory, removePrevious)
-   if (numInstances > 1)
+   if (FastResetModExist(savesDirectory))
    {
-      thePID := Switch(thePID)
-      savesDirectory := getSavesDirectory()
+      OutputDebug, fast reset mod exists, first resetting then switching
+      OutputDebug, saves directory is %savesDirectory%
+      WinGet, thePID, PID, A
+      OutputDebug, thePID is %thePID%
+      DoAReset(thePID, savesDirectory, removePrevious)
+      OutputDebug, menuing done
+      if (numInstances > 1)
+      {
+         OutputDebug, old pid: %thePID%
+         thePID := Switch(thePID)
+         OutputDebug, new pid: %thePID%
+         savesDirectory := getSavesDirectory()
+         OutputDebug, new saves directory: %savesDirectory%
+      }
+      worldLoadStuff(thePID, savesDirectory)
+      OutputDebug, finished world load stuff
    }
-   worldLoadStuff(thePID, savesDirectory)
+   else
+   {
+      OutputDebug, fast reset mod does not exist, first switching then resetting
+   }
 }
 
 worldLoadStuff(thePID, savesDirectory)
@@ -628,19 +703,19 @@ Switch(thePID)
 {
    if (thePID = PID1)
    {
-      clickOn(2)
+      SwitchTo(PID2)
       return (PID2)
    }
    if (thePID = PID2)
    {
       if (numInstances = 2)
       {
-         clickOn(1)
+         SwitchTo(PID1)
          return (PID1)
       }
       else
       {
-         clickOn(3)
+         SwitchTo(PID3)
          return (PID3)
       }
    }
@@ -648,47 +723,34 @@ Switch(thePID)
    {
       if (numInstances = 3)
       {
-         clickOn(1)
+         SwitchTo(PID1)
          return (PID1)
       }
       else
       {
-         clickOn(4)
+         SwitchTo(PID4)
          return (PID4)
       }
    }
    if (thePID = PID4)
    {
-      clickOn(1)
+      SwitchTo(PID1)
       return (PID1)
    }
 }
 
-clickOn(n)
+SwitchTo(thePID)
 {
-   CoordMode, Mouse, Screen
-   if (n = 1)
-   {
-      MouseClick, L, icon1[1], icon1[2]
-   }
-   if (n = 2)
-   {
-      MouseClick, L, icon2[1], icon2[2]
-   }
-   if (n = 3)
-   {
-      MouseClick, L, icon3[1], icon3[2]
-   }
-   if (n = 4)
-   {
-      MouseClick, L, icon4[1], icon4[2]
-   }
-   CoordMode, Mouse, Relative
+   WinActivate, OBS
+   WinActivate, ahk_pid %thePID%
 }
 
-Test()
+DeletePIDsFile()
 {
-   
+   FileSetAttrib, -R, PIDs.txt
+   FileDelete, PIDs.txt
+   if (FileExist("PIDs.txt"))
+      OutputDebug, file still not deleted for some reason
 }
 
 getGUIscale(savesDirectory) ;used on script startup
@@ -730,6 +792,69 @@ BackgroundReset(thePID, savesDirectory)
    if (!WinActive("ahk_pid" thePID))
    {
       DoAReset(thePID, savesDirectory, true, true)
+   }
+}
+
+PIDFileCheck()
+{
+   lineCounter = 0
+   willNeedToSetUpPIDs := False
+   Loop, Read, PIDs.txt
+   {
+      lineCounter += 1
+      OutputDebug, the PID it read is %A_LoopReadLine%
+      WinGetTitle, Title, ahk_pid %A_LoopReadLine%
+      if (!InStr(Title, "Minecraft"))
+      {
+         OutputDebug, PID not found
+         willNeedToSetUpPIDs := True
+      }
+      else
+      {
+         PIDs[lineCounter] := A_LoopReadLine
+         thePID := PIDs[lineCounter]
+         OutputDebug, PID number %thePID% was found
+      }
+   }
+   if (lineCounter != numInstances)
+   {
+      OutputDebug, line counter is %lineCounter%
+      OutputDebug, number of instances is %numInstances%
+      willNeedToSetUpPIDs := True
+   }
+   if (willNeedToSetUpPIDs)
+   {
+      OutputDebug, setting up PIDs
+      SetupPIDs()
+   }
+   else
+      OutputDebug, all PIDs are good and everything and all that
+}
+
+SetupPIDs()
+{
+   if (FileExist("PIDs.txt"))
+   {
+      OutputDebug, the file exists
+      DeletePIDsFile()
+   }
+   if (numInstances > 1)
+   {
+      PIDs[1] := getPID(1)
+      PID1 := PIDs[1]
+      PIDs[2] := getPID(2)
+      PID2 := PIDs[2]
+      if (numInstances > 2)
+      {
+         PIDs[3] := getPID(3)
+         PID3 := PIDs[3]
+         if (numInstances > 3)
+         {
+            PIDs[4] := getPID(4)
+            PID4 := PIDs[4]
+         }
+      }
+      MsgBox, Close this message and you're good to go.
    }
 }
 
@@ -789,38 +914,33 @@ if ((fullscreenOnLoad != "Yes") and (fullscreenOnLoad != "No"))
    ExitApp
 }
 
+Test()
+{
+}
+
 SetDefaultMouseSpeed, 0
 SetMouseDelay, 0
 SetKeyDelay , 1
 SetWinDelay, 1
-
-if (numInstances > 1)
-{
-   global PID1 := getPID(1)
-   global PID2 := getPID(2)
-   if (numInstances > 2)
-   {
-      global PID3 := getPID(3)
-      if (numInstances > 3)
-         global PID4 := getPID(4)
-   }
-}
-if (numInstances > 1)
-{
-   global icon1 := getCoords(1)
-   global icon2 := getCoords(2)
-   if (numInstances > 2)
-   {
-      global icon3 := getCoords(3)
-      if (numInstances > 3)
-         global icon4 := getCoords(4)
-   }
-}
-CoordMode, Mouse, Relative
+global PIDs = [1, 2, 3, 4]
+global PID1
+global PID2
+global PID3
+global PID4
+PIDFileCheck()
+PID1 := PIDs[1]
+PID2 := PIDs[2]
+PID3 := PIDs[3]
+PID4 := PIDs[4]
+OutputDebug, PIDs are %PID1% %PID2% %PID3% %PID4% 
 
 #IfWinActive, Minecraft
 {
 F5::Reload ; Reload keybind
+
+^F5:: ; reload PIDs
+   SetupPIDs()
+return
 
 PgUp:: ; Reset keybind that doesn't remove previous world
    ResetAndSwitch(false)
