@@ -80,16 +80,49 @@ fastResetModExist(savesDirectory)
    }
 }
 
-ShiftTab(thePID)
+WaitForHost(savesDirectory)
+{
+   logFile := StrReplace(savesDirectory, "saves", "logs\latest.log")
+   numLines := 0
+   Loop, Read, %logFile%
+   {
+      numLines += 1
+   }
+   openedToLAN := False
+   while (!openedToLAN)
+   {
+      OutputDebug, reading log file
+      Loop, Read, %logFile%
+      {
+         if ((numLines - A_Index) < 2)
+         {
+            OutputDebug, %A_LoopReadLine%
+            if (InStr(A_LoopReadLine, "[CHAT] Local game hosted on port"))
+            {
+               OutputDebug, found the [CHAT] Local game hosted on port
+               openedToLAN := True
+            }
+         }
+      }
+   }
+}
+
+ShiftTab(thePID, n := 1)
 {
    if WinActive("ahk_pid" thePID)
    {
-      Send, +`t
+      Loop, %n%
+      {
+         Send, +`t
+      }
    }
    else
    {
       ControlSend, ahk_parent, {Shift down}, ahk_pid %thePID%
-      ControlSend, ahk_parent, {Tab}, ahk_pid %thePID%
+      Loop, %n%
+      {
+         ControlSend, ahk_parent, {Tab}, ahk_pid %thePID%
+      }
       ControlSend, ahk_parent, {Shift up}, ahk_pid %thePID%
    }
 }
@@ -137,21 +170,23 @@ getSavesDirectory()
 
 Perch()
 {
+   WinGet, thePID, PID, A
    savesDirectory := getSavesDirectory()
+   SetKeyDelay, 1
    if (version = 17)
    {
       OutputDebug, 1.17 perch
       Send, {Esc} ; pause
-      ShiftTab(2)
+      ShiftTab(thePID, 2)
       if (fastResetModExist(savesDirectory))
       {
-         ShiftTab(1)
+         ShiftTab(thePID, 1)
       }
       Send, {enter} ; open to LAN
       Send, {tab}{tab}{enter} ; cheats on
       Send, `t
       Send, {enter} ; open to LAN
-      Sleep, 50
+      WaitForHost(savesDirectory)
       Send, /
       Sleep, 70
       SendInput, data merge entity @e[type=ender_dragon,limit=1] {{}DragonPhase:2{}}
@@ -161,22 +196,23 @@ Perch()
    {
       OutputDebug, 1.16 perch
       Send, {Esc} ; pause
-      ShiftTab(2)
+      ShiftTab(thePID, 2)
       if (fastResetModExist(savesDirectory))
       {
-         ShiftTab(1)
+         ShiftTab(thePID, 1)
       }
       Send, {enter} ; open to LAN
-      ShiftTab(1)
+      ShiftTab(thePID, 1)
       Send, {enter} ; cheats on
       Send, `t
       Send, {enter} ; open to LAN
-      Sleep, 50
+      WaitForHost(savesDirectory)
       Send, /
       Sleep, 70
       SendInput, data merge entity @e[type=ender_dragon,limit=1] {{}DragonPhase:2{}}
       Send, {enter}
    }
+   SetKeyDelay, 1
 }
 
 WaitForWorldList(previousErrorLevel)
@@ -641,6 +677,7 @@ getPID(n)
 
 ResetAndSwitch(removePrevious := True)
 {
+   PIDFileCheck()
    savesDirectory := getSavesDirectory()
    if (FastResetModExist(savesDirectory))
    {
@@ -789,6 +826,7 @@ getVersion()
 
 BackgroundReset(thePID, savesDirectory)
 {
+   PIDFileCheck()
    if (!WinActive("ahk_pid" thePID))
    {
       DoAReset(thePID, savesDirectory, true, true)

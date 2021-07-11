@@ -125,6 +125,33 @@ ShiftTab(n)
    }
 }
 
+WaitForHost()
+{
+   logFile := StrReplace(savesDirectory, "saves", "logs\latest.log")
+   numLines := 0
+   Loop, Read, %logFile%
+   {
+      numLines += 1
+   }
+   openedToLAN := False
+   while (!openedToLAN)
+   {
+      OutputDebug, reading log file
+      Loop, Read, %logFile%
+      {
+         if ((numLines - A_Index) < 2)
+         {
+            OutputDebug, %A_LoopReadLine%
+            if (InStr(A_LoopReadLine, "[CHAT] Local game hosted on port"))
+            {
+               OutputDebug, found the [CHAT] Local game hosted on port
+               openedToLAN := True
+            }
+         }
+      }
+   }
+}
+
 Perch()
 {
    if (version = 17)
@@ -136,7 +163,7 @@ Perch()
       Send, {tab}{tab}{enter} ; cheats on
       Send, `t
       Send, {enter} ; open to LAN
-      Sleep, 50
+      WaitForHost()
       Send, /
       Sleep, 70
       SendInput, data merge entity @e[type=ender_dragon,limit=1] {{}DragonPhase:2{}}
@@ -152,7 +179,7 @@ Perch()
       Send, {enter} ; cheats on
       Send, `t
       Send, {enter} ; open to LAN
-      Sleep, 50
+      WaitForHost()
       Send, /
       Sleep, 70
       SendInput, data merge entity @e[type=ender_dragon,limit=1] {{}DragonPhase:2{}}
