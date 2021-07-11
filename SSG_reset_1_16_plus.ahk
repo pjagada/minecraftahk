@@ -35,6 +35,7 @@
 ;   A: You're likely using fast reset mod versions 1.3.3. Try version 1.3.1 found in the 1.16 HQ server.
  
 #NoEnv
+#SingleInstance Force
 SetWorkingDir %A_ScriptDir%
 
 ; Options:

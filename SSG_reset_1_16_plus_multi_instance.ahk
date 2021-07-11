@@ -37,6 +37,7 @@
 
  
 #NoEnv
+#SingleInstance Force
 SetWorkingDir %A_ScriptDir%
 
 ; Options:
@@ -65,7 +66,7 @@ global worldName := "New World" ; you can name the world whatever you want, put 
 global previousWorldOption := "delete" ; What to do with the previous world (either "delete" or "move") when the Page Down hotkey is used. If it says "move" then worlds will be moved to a folder called oldWorlds in your .minecraft folder. This does not apply to worlds whose files start with an "_" (without the quotes)
 global inputMethod := "key" ; this doesn't work right now for click lmao just leave it as key. either "click" or "key" (click is theoretically faster but kinda experimental at this point and may not work properly depending on your resolution)
 global fullscreenOnLoad = "No" ; change this to "Yes" if you would like the macro ensure that you are in fullscreen mode when the world is ready (a little experimental so I would recommend not using this in case of verification issues)
-global pauseOnLoad := "Yes" ; change this to "No" if you would like the macro to not automatically pause when the world loads in (this also doesn't always work admiraaa but no harm in leaving it on)
+global pauseOnLoad := "Yes" ; change this to "No" if you would like the macro to not automatically pause when the world loads in (this also doesn't always work but no harm in leaving it on)
 
 
 fastResetModExist(savesDirectory)
