@@ -28,9 +28,6 @@
 ;   A: Right click the file, click "Open with" -> "Choose another app" -> "More apps" -> "Look for another app on this PC," then find the AutoHotkey folder (likely in Program Files).
 ;      Go into that folder, and double click on AutoHotkeyU64.exe. If that's not there, then reinstall AutoHotkey.
 ;
-;   Q: Why am I getting false positives when using the autoresetter?
-;   A: This can happen when there's more lag going on (for example when it's the first world after opening up Minecraft or when you have streams open). Increase the number in Autoresetter Options that comes after with "global clipboardLoadTime := "
-;
 ;   Q: Why is it getting stuck at the title screen?
 ;   A: You're likely using fast reset mod versions 1.3.3. Try version 1.3.1 found in the 1.16 HQ server.
  
@@ -63,7 +60,7 @@ global windowedReset := "No" ; change this to "Yes" if you would like to ensure 
 global pauseOnLoad := "Yes" ; change this to "No" if you would like the macro to not automatically pause when the world loads in (this is automatically enabled if you're using the autoresetter)
 global activateMCOnLoad := "Yes" ; change this to "No" if you would not like the macro to pull up Minecraft when the world is ready (or when spawn is ready when autoresetter is enabled)
 global fullscreenOnLoad = "No" ; change this to "Yes" if you would like the macro ensure that you are in fullscreen mode when the world is ready (the world will be activated to ensure that no recording is lost)
-
+global f3pWarning := "enabled" ; change this to "disabled" once you've seen the warning
 global trackFlint := "Yes" ; track flint rates (to make sure that it's not counting gravel from non-run worlds, it will only count it if you run it from a previous world)
                            ; Each run will be logged in a file called SSGstats.csv, and cumulative stats will be stored in a file called SSGstats.txt
 
@@ -78,7 +75,8 @@ global trackFlint := "Yes" ; track flint rates (to make sure that it's not count
 ;      X1,Z1;X2,Z2
 ;      Those coordinates should be opposite corners of a rectangle. Any spawns within that rectangle will be automatically counted as a good spawn if that rectangle was obtained from whitelist.txt.
 ;      Similarly, if that rectangle is obtained from blacklist.txt, any spawns within that rectangle will be resetted automatically. The whitelist is consulted first, the blacklist second, and the radius last.
-;   6) If the autoresetter gives you a spawn that you don't like, you can add it to the blacklist by pressing Ctrl B (the same thing you would press to bold text). Make sure you're on the exact coordinate that you want to be blacklisted.
+;   6) If the autoresetter gives you a spawn that you don't like, you can add it to the blacklist by pressing Ctrl B (the same thing you would press to bold text).
+;      Make sure you're on the exact coordinate that you want to be blacklisted (down to the hundredth of a block), since it will blacklist your current location, not your spawn.
 ;   7) Because of this feature, I recommend starting out with a higher radius than you would need, then just add bad spawns to the blacklist.
 
 ; Autoresetter Options:
@@ -88,10 +86,8 @@ global centerPointX := 162.7 ; this is the x coordinate of that certain point (b
 global centerPointZ := 194.5 ; this is the z coordinate of that certain point (by default it's the z coordinate of being pushed up against the window of the blacksmith of -3294725893620991126)
 global radius := 13 ; if this is 10 for example, the autoresetter will not reset if you are within 10 blocks of the point specified above. Set this smaller for better spawns but more resets
 ; if you would only like to reset the blacklisted spawns, then just set this number really large (1000 should be good enough), and if you would only like to play out whitelisted spawns, then just make this number negative
-global f3pWarning := "enabled" ; change this to "disabled" once you've seen the warning
 global message := "" ; what message will pop up when a good spawn is found (if you don't want a message to pop up, change this to "")
-global playSound := "Yes" ; "Yes" or "No" on whether or not to play that Windows sound when good seed is found. To play a custom sound, just save it as spawnready.mp3 in the same folder as this script.
-global clipboardLoadTime := 1000 ; increase this if you're getting a lot of false positives, and decrease this if you want to spend less time waiting on the pause menu while it's checking the spawn
+global playSound := "No" ; "Yes" or "No" on whether or not to play that Windows sound when good seed is found. To play a custom sound, just save it as spawnready.mp3 in the same folder as this script.
 
 fastResetModStuff()
 {
@@ -117,12 +113,12 @@ ShiftTab(n)
    }
    else
    {
-      ControlSend, ahk_parent, {Shift down}
+      ControlSend, ahk_parent, {Shift down}, ahk_exe javaw.exe
       Loop, %n%
       {
-         ControlSend, ahk_parent, {Tab}
+         ControlSend, ahk_parent, {Tab}, ahk_exe javaw.exe
       }
-      ControlSend, ahk_parent, {Shift up}
+      ControlSend, ahk_parent, {Shift up}, ahk_exe javaw.exe
    }
 }
 
@@ -436,8 +432,10 @@ PossiblyPause()
                if (doAutoResets = "Yes")
                {
                   Sleep, 20
+                  /*
                   oldClipboard := Clipboard
                   ControlSend, ahk_parent, {F3 Down}cd{F3 Up}
+                  */
                   ControlSend, ahk_parent, {Esc}
                }
                else
@@ -522,6 +520,7 @@ ExitWorld(manualReset := True)
       ControlSend, ahk_parent, {Esc}
       ;ChangeRD()
    }
+   Sleep, 10
    ShiftTab(1)
    ControlSend, ahk_parent, {Enter}
 }
@@ -632,6 +631,7 @@ getVersion()
       return (16)
 }
 
+
 PauseOnLostFocus() ;used on script startup
 {
    optionsFile := StrReplace(savesDirectory, "saves", "options.txt")
@@ -705,6 +705,7 @@ isPaused() ;unused
 DoAReset(removePrevious := True, manualReset := True)
 {
    lastWorld := DoEverything(manualReset)
+   OutputDebug, reached title screen
    CreateWorld()
    if (removePrevious)
       DeleteOrMove(lastWorld)
@@ -724,17 +725,22 @@ DoSomeResets(removePrevious := True)
             break
       }
       else
+      {
+         OutputDebug, resetting bad spawn
          DoAReset(True, False)
-      WaitForClipboardUpdate()
+      }
+      ;WaitForClipboardUpdate()
       if (goodSpawn())
       {
          AlertUser()
          break
       }
+      OutputDebug, bad spawn
+      ;WaitForLoadIn()
       counter += 1
    }
 }
-
+/*
 WaitForClipboardUpdate()
 {
    startTime = A_TickCount
@@ -747,19 +753,95 @@ WaitForClipboardUpdate()
       Sleep, 10
    }
 }
+*/
+
+WaitForLoadIn()
+{
+   logFile := StrReplace(savesDirectory, "saves", "logs\latest.log")
+   numLines := 0
+   Loop, Read, %logFile%
+   {
+      numLines += 1
+   }
+   exitLoop := false
+   startTime := A_TickCount
+   while (!exitLoop)
+   {
+      OutputDebug, reading log file
+      Loop, Read, %logFile%
+      {
+         if ((numLines - A_Index) < 10)
+         {
+            OutputDebug, %A_LoopReadLine%
+            if ((InStr(A_LoopReadLine, "Saving chunks for level 'ServerLevel")) and (InStr(A_LoopReadLine, "minecraft:the_end")))
+            {
+               OutputDebug, found the saving chunks for the end thing
+               exitLoop := True
+            }
+         }
+      }
+   }
+}
+
+getSpawnPoint()
+{
+   logFile := StrReplace(savesDirectory, "saves", "logs\latest.log")
+   numLines := 0
+   Loop, Read, %logFile%
+   {
+      numLines += 1
+   }
+   Loop, Read, %logFile%
+   {
+      if ((numLines - A_Index) <= 15)
+      {
+         OutputDebug, %A_LoopReadLine%
+         if (InStr(A_LoopReadLine, "logged in with entity id"))
+         {
+            OutputDebug, found the needed line
+            spawnLine := A_LoopReadLine
+         }
+      }
+   }
+   array1 := StrSplit(spawnLine, " at (")
+   xyz := array1[2]
+   array2 := StrSplit(xyz, ", ")
+   xCoord := array2[1]
+   zCooord := array2[3]
+   array3 := StrSplit(zCooord, ")")
+   zCoord := array3[1]
+   return ([xCoord, zCoord])
+}
 
 goodSpawn()
 {
+   /*
    array1 := StrSplit(Clipboard, " ")
    xCoord := array1[7]
    zCoord := array1[9]
+   */
+   coords := getSpawnPoint()
+   xCoord := coords[1]
+   zCoord := coords[2]
+   Loop, 2
+   {
+      currentSpawn[A_Index] := coords[A_Index]
+   }
+   OutputDebug, spawn is %xCoord%, %zCoord%
    if (inList(xCoord, zCoord, "whitelist.txt"))
+   {
+      OutputDebug, in whitelist
       return True
+   }
    if (inList(xCoord, zCoord, "blacklist.txt"))
+   {
+      OutputDebug, in blacklist
       return False
+   }
    xDisplacement := xCoord - centerPointX
    zDisplacement := zCoord - centerPointZ
    distance := Sqrt((xDisplacement * xDisplacement) + (zDisplacement * zDisplacement))
+   OutputDebug, distance of %distance%
    if (distance <= radius)
       return True
    else
@@ -768,9 +850,9 @@ goodSpawn()
 
 AddToBlacklist()
 {
-   array1 := StrSplit(Clipboard, " ")
-   xCoord := array1[7]
-   zCoord := array1[9]
+   xCoord := currentSpawn[1]
+   zCoord := currentSpawn[2]
+   OutputDebug, blacklisting %xCoord%, %zCoord%
    theString := xCoord . "," . zCoord . ";" . xCoord . "," . zCoord
    if (!FileExist("blacklist.txt"))
       FileAppend, %theString%, blacklist.txt
@@ -960,7 +1042,7 @@ UpdateStats()
 
 Test()
 {
-   UpdateStats()
+   
 }
 
 if ((!FileExist(savesDirectory)) or (!InStr(savesDirectory, "\saves")))
@@ -998,10 +1080,6 @@ if ((!getGUIscale()) && (inputMethod != "key"))
    MsgBox, Your GUI scale is not supported with the click macro. Either change your GUI scale to 0, 3, or 4, or change the input method to "key". Then run the script again.
    ExitApp
 }
-if ((PauseOnLostFocus()) && (doAutoResets = "Yes") && (f3pWarning = "enabled"))
-{
-   MsgBox, If you would like to use the autoresetter while tabbed out, you will need to disable the "pause on lost focus" feature by pressing F3 + P in-game. If you will not be tabbed out while using the autoresetter, then don't worry about this, and you can disable this warning by changing "global f3pWarning := "enabled"" to "global f3pWarning := "disabled"" This is just a warning message and it will not exit the script, so you do not need to restart the script if you see this.
-}
 if ((playSound != "Yes") and (playSound != "No"))
 {
    MsgBox, Choose a valid option for whether or not to play a sound. Go to the Options section of this script and choose either "Yes" or "No" after the words "global playSound := "
@@ -1028,12 +1106,17 @@ if ((trackFlint != "Yes") and (trackFlint != "No"))
    MsgBox, Choose a valid option for whether or not to track flint rates. Go to the Options section of this script and choose either "Yes" or "No" after the words "global trackFlint := "
    ExitApp
 }
+if ((PauseOnLostFocus()) && (doAutoResets = "Yes") && (f3pWarning = "enabled"))
+{
+   MsgBox, If you would like to use the autoresetter while tabbed out, you will need to disable the "pause on lost focus" feature by pressing F3 + P in-game. If you will not be tabbed out while using the autoresetter, then don't worry about this, and you can disable this warning by changing "global f3pWarning := "enabled"" to "global f3pWarning := "disabled"" This is just a warning message and it will not exit the script, so you do not need to restart the script if you see this.
+}
 
 SetDefaultMouseSpeed, 0
 SetMouseDelay, 0
 SetKeyDelay , 1
 SetWinDelay, 1
-global oldClipboard
+;global oldClipboard
+global currentSpawn := [9999,9999]
 
 #IfWinActive, Minecraft
 {
