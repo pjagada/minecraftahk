@@ -41,12 +41,7 @@
 SetWorkingDir %A_ScriptDir%
 
 ; Options:
-global numInstances = 2
-
-global savesDirectory1 := "C:\Users\prana\AppData\Roaming\mmc-stable-win32\MultiMC\instances\Instance 1\.minecraft\saves" ; input your minecraft saves directory here. It will probably start with "C:\Users..." and end with "\minecraft\saves"
-global savesDirectory2 := "C:\Users\prana\AppData\Roaming\mmc-stable-win32\MultiMC\instances\Instance 2\.minecraft\saves" ; same thing here, if you're not using multiple instances, then it doesn't matter what this is
-global savesDirectory3 := "C:\Users\prana\AppData\Roaming\mmc-stable-win32\MultiMC\instances\Instance 3\.minecraft\saves" ; same thing here, if you're not using more than 2 instances, then it doesn't matter what this is
-global savesDirectory4 := "C:\Users\prana\AppData\Roaming\mmc-stable-win32\MultiMC\instances\Instance 4\.minecraft\saves" ; same thing here, if you're not using more than 3 instances, then it doesn't matter what this is
+global savesDirectories := ["C:\Users\prana\AppData\Roaming\mmc-stable-win32\MultiMC\instances\Instance 1\.minecraft\saves", "C:\Users\prana\AppData\Roaming\mmc-stable-win32\MultiMC\instances\Instance 2\.minecraft\saves", "C:\Users\prana\AppData\Roaming\mmc-stable-win32\MultiMC\instances\Instance 3\.minecraft\saves"]
 global screenDelay := 50 ; Change this value to increase/decrease the number of time (in milliseconds) that each world creation screen is held for. For your run to be verifiable, each of the three screens of world creation must be shown.
 global worldListWait := 1000 ; The macro will wait for the world list screen to show before proceeding, but sometimes this feature doesn't work, especially if you use fullscreen, and always if you're tabbed out during this part.
                             ; In that case, this number (in milliseconds) defines the hard limit that it will wait after clicking on "Singleplayer" before proceeding.
@@ -90,11 +85,22 @@ WaitForHost(savesDirectory)
       numLines += 1
    }
    openedToLAN := False
+   startTime := A_TickCount
    while (!openedToLAN)
    {
       OutputDebug, reading log file
+      if ((A_TickCount - startTime) > 5000)
+      {
+         OutputDebug, open to lan timed out
+         break
+      }
       Loop, Read, %logFile%
       {
+         if ((A_TickCount - startTime) > 5000)
+         {
+            OutputDebug, open to lan timed out
+            break
+         }
          if ((numLines - A_Index) < 2)
          {
             OutputDebug, %A_LoopReadLine%
@@ -136,36 +142,20 @@ getSavesDirectory()
    {
       OutputDebug, have to select saves directory from PID since we are on more than one instance
       OutputDebug, current PID: %thePID%
-      OutputDebug, PID instn 1: %PID1%
-      OutputDebug, PID instn 2: %PID2%
-      OutputDebug, PID instn 3: %PID3%
-      OutputDebug, PID instn 4: %PID4%
-      if (thePID = PID1)
+      Loop, %numInstances%
       {
-         OutputDebug, we are on instance 1
-         savesDirectory := savesDirectory1
-      }
-      else if (thePID = PID2)
-      {
-         OutputDebug, we are on instance 2
-         savesDirectory := savesDirectory2
-      }
-      else if (thePID = PID3)
-      {
-         OutputDebug, we are on instance 3
-         savesDirectory := savesDirectory3
-      }
-      else if (thePID = PID4)
-      {
-         OutputDebug, we are on instance 4
-         savesDirectory := savesDirectory4
+         if (thePID = PIDs[A_Index])
+         {
+            OutputDebug, we are on instance %A_Index%
+            savesDirectory := savesDirectories[A_Index]
+         }
       }
       return (savesDirectory)
    }
    else
    {
       OutputDebug, only using one instance so saves directory is saves directory
-      return (savesDirectory1)
+      return (savesDirectories[1])
    }
 }
 
@@ -627,47 +617,22 @@ getPID(n)
          if (InStr(title, "Minecraft"))
          {
             WinGet, thePID, PID, A
-            if (n = 2)
+            if (n > 1)
             {
-               if (thePID = PID1)
+               m := n - 1
+               Loop, %m%
                {
-                  MsgBox, You clicked on the same window for Instance %n% as you did for Instance 1. Close this message to start over.
-                  Reload
-               }
-            }
-            if (n = 3)
-            {
-               if (thePID = PID1)
-               {
-                  MsgBox, You clicked on the same window for Instance %n% as you did for Instance 1. Close this message to start over.
-                  Reload
-               }
-               if (thePID = PID2)
-               {
-                  MsgBox, You clicked on the same window for Instance %n% as you did for Instance 2. Close this message to start over.
-                  Reload
-               }
-            }
-            if (n = 4)
-            {
-               if (thePID = PID1)
-               {
-                  MsgBox, You clicked on the same window for Instance %n% as you did for Instance 1. Close this message to start over.
-                  Reload
-               }
-               if (thePID = PID2)
-               {
-                  MsgBox, You clicked on the same window for Instance %n% as you did for Instance 2. Close this message to start over.
-                  Reload
-               }
-               if (thePID = PID3)
-               {
-                  MsgBox, You clicked on the same window for Instance %n% as you did for Instance 2. Close this message to start over.
-                  Reload
+                  PIDcheck := PIDs[A_Index]
+                  if (PIDcheck = thePID)
+                  {
+                     MsgBox, You clicked on the same window for Instance %n% as you did for Instance %A_Index%. Close this message to start over.
+                     Reload
+                  }
                }
             }
             FileAppend, %thePID%`n, PIDs.txt
-            OutputDebug, wrote PID number %thePID% to the file
+            PIDs.Push(thePID)
+            OutputDebug, wrote PID number %thePID% to the file and appended it to the array.
             return (thePID)
          }
          else
@@ -691,7 +656,7 @@ ResetAndSwitch(removePrevious := True)
       if (numInstances > 1)
       {
          OutputDebug, old pid: %thePID%
-         thePID := Switch(thePID)
+         thePID := PIDs[Switch(thePID)]
          OutputDebug, new pid: %thePID%
          savesDirectory := getSavesDirectory()
          OutputDebug, new saves directory: %savesDirectory%
@@ -739,47 +704,28 @@ worldLoadStuff(thePID, savesDirectory)
 
 Switch(thePID)
 {
-   if (thePID = PID1)
+   Loop, %numInstances%
    {
-      SwitchTo(PID2)
-      return (PID2)
-   }
-   if (thePID = PID2)
-   {
-      if (numInstances = 2)
+      if (thePID = PIDs[A_Index])
       {
-         SwitchTo(PID1)
-         return (PID1)
-      }
-      else
-      {
-         SwitchTo(PID3)
-         return (PID3)
+         currentInstanceNum := A_Index
       }
    }
-   if (thePID = PID3)
+   newInstanceNum := currentInstanceNum + 1
+   if (currentInstanceNum = numInstances)
    {
-      if (numInstances = 3)
-      {
-         SwitchTo(PID1)
-         return (PID1)
-      }
-      else
-      {
-         SwitchTo(PID4)
-         return (PID4)
-      }
+      newInstanceNum := 1
    }
-   if (thePID = PID4)
-   {
-      SwitchTo(PID1)
-      return (PID1)
-   }
+   OutputDebug, %newInstanceNum%
+   SwitchTo(newInstanceNum)
+   return (newInstanceNum)
 }
 
-SwitchTo(thePID)
+SwitchTo(instanceNum)
 {
    WinActivate, OBS
+   WinActivate, DebugView
+   thePID := PIDs[instanceNum]
    WinActivate, ahk_pid %thePID%
 }
 
@@ -850,7 +796,7 @@ PIDFileCheck()
       }
       else
       {
-         PIDs[lineCounter] := A_LoopReadLine
+         PIDs.push(A_LoopReadLine)
          thePID := PIDs[lineCounter]
          OutputDebug, PID number %thePID% was found
       }
@@ -864,6 +810,7 @@ PIDFileCheck()
    if (willNeedToSetUpPIDs)
    {
       OutputDebug, setting up PIDs
+      PIDs := []
       SetupPIDs()
    }
    else
@@ -877,50 +824,26 @@ SetupPIDs()
       OutputDebug, the file exists
       DeletePIDsFile()
    }
+   Loop, %numInstances%
+   {
+      getPID(A_Index)
+   }
    if (numInstances > 1)
    {
-      PIDs[1] := getPID(1)
-      PID1 := PIDs[1]
-      PIDs[2] := getPID(2)
-      PID2 := PIDs[2]
-      if (numInstances > 2)
-      {
-         PIDs[3] := getPID(3)
-         PID3 := PIDs[3]
-         if (numInstances > 3)
-         {
-            PIDs[4] := getPID(4)
-            PID4 := PIDs[4]
-         }
-      }
       MsgBox, Close this message and you're good to go.
    }
 }
 
-if ((numInstances != 1) and (numInstances != 2) and (numInstances != 3) and (numInstances != 4))
+global numInstances = savesDirectories.MaxIndex()
+OutputDebug, %numInstances% instances being used
+
+Loop, %numInstances%
 {
-   MsgBox, You can only use 1, 2, 3, or 4 instances. Right click on the script file, click edit script, and change the number after "global numInstances := " to 1, 2, 3, or 4.
-   ExitApp
-}
-if ((!FileExist(savesDirectory1)) or (!InStr(savesDirectory1, "\saves")))
-{
-   MsgBox, Your saves directory for instance 1 is invalid. Right click on the script file, click edit script, and put thep correct saves directory, then save the script and run it again.
-   ExitApp
-}
-if (((!FileExist(savesDirectory2)) or (!InStr(savesDirectory2, "\saves"))) and (numInstances >= 2))
-{
-   MsgBox, Your saves directory for instance 2 is invalid. Right click on the script file, click edit script, and put the correct saves directory, then save the script and run it again.
-   ExitApp
-}
-if (((!FileExist(savesDirectory3)) or (!InStr(savesDirectory3, "\saves"))) and (numInstances >= 3))
-{
-   MsgBox, Your saves directory for instance 3 is invalid. Right click on the script file, click edit script, and put the correct saves directory, then save the script and run it again.
-   ExitApp
-}
-if (((!FileExist(savesDirectory4)) or (!InStr(savesDirectory4, "\saves"))) and (numInstances >= 4))
-{
-   MsgBox, Your saves directory for instance 4 is invalid. Right click on the script file, click edit script, and put the correct saves directory, then save the script and run it again.
-   ExitApp
+   if ((!FileExist(savesDirectories[A_Index])) or (!InStr(savesDirectories[A_Index], "\saves")))
+   {
+      MsgBox, Your saves directory for instance %A_Index% is invalid. Right click on the script file, click edit script, and put the correct saves directory, then save the script and run it again.
+      ExitApp
+   }
 }
 if ((previousWorldOption != "move") and (previousWorldOption != "delete"))
 {
@@ -937,7 +860,7 @@ if ((inputMethod != "key") and (inputMethod != "click"))
    MsgBox, Choose a valid option for what input method to use. Go to the Options section of this script and choose either "key" or "click" after the words "global inputMethod := "
    ExitApp
 }
-if ((!getGUIscale(savesDirectory1) or !getGUIscale(savesDirectory2)) && (inputMethod != "key"))
+if ((!getGUIscale(savesDirectories[1])) && (inputMethod != "key"))
 {
    MsgBox, Your GUI scale is not supported with the click macro. Either change your GUI scale to 0, 3, or 4, or change the input method to "key". Then run the script again.
    ExitApp
@@ -961,17 +884,8 @@ SetDefaultMouseSpeed, 0
 SetMouseDelay, 0
 SetKeyDelay , 1
 SetWinDelay, 1
-global PIDs = [1, 2, 3, 4]
-global PID1
-global PID2
-global PID3
-global PID4
+global PIDs = []
 PIDFileCheck()
-PID1 := PIDs[1]
-PID2 := PIDs[2]
-PID3 := PIDs[3]
-PID4 := PIDs[4]
-OutputDebug, PIDs are %PID1% %PID2% %PID3% %PID4% 
 
 #IfWinActive, Minecraft
 {
@@ -994,29 +908,25 @@ End:: ; This is where the keybind for opening to LAN and perching is set.
 return
 
 NumPad1::
-   BackgroundReset(PID1, savesDirectory1)
+   BackgroundReset(PIDs[1], savesDirectories[1])
 return
 
 NumPad2::
-   BackgroundReset(PID2, savesDirectory2)
+   BackgroundReset(PIDs[2], savesDirectories[2])
 return
 
 NumPad3::
-   BackgroundReset(PID3, savesDirectory3)
+   BackgroundReset(PIDs[3], savesDirectories[3])
 return
 
 NumPad4::
-   BackgroundReset(PID4, savesDirectory4)
+   BackgroundReset(PIDs[4], savesDirectories[4])
 return
 
 Home::
-   BackgroundReset(PID1, savesDirectory1)
-   BackgroundReset(PID2, savesDirectory2)
-   if (numInstances >= 3)
+   Loop, %numInstances%
    {
-      BackgroundReset(PID3, savesDirectory3)
-      if (numInstances >= 4)
-         BackgroundReset(PID4, savesDirectory4)
+      BackgroundReset(PIDs[A_Index], savesDirectories[A_Index])
    }
 return
 }
