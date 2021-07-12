@@ -1,5 +1,5 @@
 ; Minecraft Reset Script for multiple instances (set seed 1.16)
-; Author:  Peej, with help/code from jojoe77777, onvo, SLTRR, DesktopFolder, Four, and _D4rkS0ul_
+; Author:  Peej, with help/code from jojoe77777, Specnr, onvo, SLTRR, DesktopFolder, Four, and _D4rkS0ul_
 ; Authors are not liable for any run rejections.
 ; To use this script, make sure you have autohotkey installed (autohotkey.com), then right click on the script file, and click "Run Script."
 ; If you make any changes to the script by right clicking and clicking "Edit Script," make sure to reload the script by pressing F5 or by right clicking on the logo in your taskbar and clicking "Reload Script."
@@ -61,8 +61,61 @@ global worldName := "New World" ; you can name the world whatever you want, put 
 global previousWorldOption := "delete" ; What to do with the previous world (either "delete" or "move") when the Page Down hotkey is used. If it says "move" then worlds will be moved to a folder called oldWorlds in your .minecraft folder. This does not apply to worlds whose files start with an "_" (without the quotes)
 global inputMethod := "key" ; this doesn't work right now for click lmao just leave it as key. either "click" or "key" (click is theoretically faster but kinda experimental at this point and may not work properly depending on your resolution)
 global fullscreenOnLoad = "No" ; change this to "Yes" if you would like the macro ensure that you are in fullscreen mode when the world is ready (a little experimental so I would recommend not using this in case of verification issues)
-global pauseOnLoad := "Yes" ; change this to "No" if you would like the macro to not automatically pause when the world loads in (this also doesn't always work but no harm in leaving it on)
+global pauseOnLoad := "Yes" ; change this to "No" if you would like the macro to not automatically pause when the world loads in
+global unpauseOnSwitch := "No" ; change this to "Yes" if you would like the macro to automatically unpause when you switch to the next instance
 
+RunHide(Command)
+{
+  dhw := A_DetectHiddenWindows
+  DetectHiddenWindows, On
+  Run, %ComSpec%,, Hide, cPid
+  WinWait, ahk_pid %cPid%
+  DetectHiddenWindows, %dhw%
+  DllCall("AttachConsole", "uint", cPid)
+
+  Shell := ComObjCreate("WScript.Shell")
+  Exec := Shell.Exec(Command)
+  Result := Exec.StdOut.ReadAll()
+
+  DllCall("FreeConsole")
+  Process, Close, %cPid%
+Return Result
+}
+
+GetInstanceNum(pid)
+{
+  inst := -1
+  command := Format("powershell.exe $x = Get-WmiObject Win32_Process -Filter \""ProcessId = {1}\""; $x.CommandLine", pid)
+  rawOut := RunHide(command)
+  strArr := StrSplit(rawOut, "--")
+  for i, item in strArr {
+    if (InStr(item, "gameDir")) {
+      item := RTrim(item)
+      StringRight, inst, item, 1
+      break
+    }
+  }
+return inst
+}
+
+GetAllPIDs()
+{
+  orderedPIDs := []
+  loop, %numInstances%
+    orderedPIDs.Push(-1)
+  WinGet, all, list
+  Loop, %all%
+  {
+    WinGet, pid, PID, % "ahk_id " all%A_Index%
+    WinGetTitle, title, ahk_pid %pid%
+    if (InStr(title, "Minecraft* 1.1")) {
+      inst := GetInstanceNum(pid)
+      OutputDebug, inst: %inst%, pid: %pid%
+      orderedPIDs[inst] := pid
+    }
+  }
+return orderedPIDs
+}
 
 fastResetModExist(savesDirectory)
 {
@@ -92,14 +145,14 @@ WaitForHost(savesDirectory)
       if ((A_TickCount - startTime) > 5000)
       {
          OutputDebug, open to lan timed out
-         break
+         openedToLAN := True
       }
       Loop, Read, %logFile%
       {
          if ((A_TickCount - startTime) > 5000)
          {
             OutputDebug, open to lan timed out
-            break
+            openedToLAN := True
          }
          if ((numLines - A_Index) < 2)
          {
@@ -643,7 +696,7 @@ getPID(n)
 
 ResetAndSwitch(removePrevious := True)
 {
-   PIDFileCheck()
+   ;PIDFileCheck()
    savesDirectory := getSavesDirectory()
    if (FastResetModExist(savesDirectory))
    {
@@ -702,6 +755,32 @@ worldLoadStuff(thePID, savesDirectory)
    }
 }
 
+getIGT(savesDirectory) ;unused
+{
+   currentWorld := getMostRecentFile(savesDirectory)
+   statsFolder := currentWorld . "\stats"
+   Loop, Files, %statsFolder%\*.*, F
+   {
+      statsFile := A_LoopFileLongPath
+   }
+   FileReadLine, fileText, %statsFile%, 1
+   if (version = 17)
+   {
+      statLocation := InStr(fileText, "play_time")
+   }
+   else
+   {
+      statLocation := InStr(fileText, "play_one_minute")
+   }
+   cutOutPrevious := SubStr(fileText, statLocation)
+   statArray := StrSplit(cutOutPrevious, ",")
+   theStat := statArray[1]
+   justTheTwo := StrSplit(theStat, ":")
+   justTheNumber := justTheTwo[2]
+   OutputDebug, IGT is %justTheNumber% ticks
+   return (justTheNumber)
+}
+
 Switch(thePID)
 {
    Loop, %numInstances%
@@ -718,6 +797,10 @@ Switch(thePID)
    }
    OutputDebug, %newInstanceNum%
    SwitchTo(newInstanceNum)
+   if (unpauseOnSwitch = "Yes")
+   {
+      Send, {Esc}
+   }
    return (newInstanceNum)
 }
 
@@ -759,6 +842,7 @@ getGUIscale(savesDirectory) ;used on script startup
 }
 
 global version = getVersion()
+OutputDebug, we are on 1.%version%
 getVersion()
 {
    optionsFile := StrReplace(savesDirectory, "saves", "options.txt")
@@ -771,13 +855,17 @@ getVersion()
       return (16)
 }
 
-BackgroundReset(thePID, savesDirectory)
+BackgroundReset(n)
 {
-   PIDFileCheck()
+   resetAboutToHappen[n] := True
+   ;PIDFileCheck()
+   thePID := PIDs[n]
+   savesDirectory := savesDirectories[n]
    if (!WinActive("ahk_pid" thePID))
    {
       DoAReset(thePID, savesDirectory, true, true)
    }
+   resetAboutToHappen[n] := False
 }
 
 PIDFileCheck()
@@ -875,25 +963,91 @@ if ((fullscreenOnLoad != "Yes") and (fullscreenOnLoad != "No"))
    MsgBox, Choose a valid option for whether or not to fullscreen Minecraft when the load is complete. Go to the Options section of this script and choose either "Yes" or "No" after the words "global fullscreenOnLoad := "
    ExitApp
 }
+if ((unpauseOnSwitch != "Yes") and (unpauseOnSwitch != "No"))
+{
+   MsgBox, Choose a valid option for whether or not to unpause on instance switch. Go to the Options section of this script and choose either "Yes" or "No" after the words "global unpauseOnSwitch := "
+   ExitApp
+}
 
 Test()
 {
+   
 }
 
 SetDefaultMouseSpeed, 0
 SetMouseDelay, 0
 SetKeyDelay , 1
 SetWinDelay, 1
-global PIDs = []
+global PIDs := [] ;GetAllPIDs()
+for i, thePID in PIDs
+{
+   OutputDebug, PID number %i% is %thePID%
+}
 PIDFileCheck()
+global resetAboutToHappen := []
+Loop, %numInstances%
+{
+   resetAboutToHappen.Push(False)
+}
+/*
+#Persistent
+   SetTimer, CheckChanged, 250
+return
 
+CheckChanged:
+   for i, thePID in PIDs
+   {
+      if (!WinActive("ahk_pid" thePID))
+      {
+         WinGetTitle, title, ahk_pid %thePID%
+         if (InStr(Title, "player") or InStr(Title, "Instance"))
+         {
+            resetHappening := resetAboutToHappen[i]
+            if (!resetHappening)
+            {
+               savesDirectory := savesDirectories[i]
+               logFile := StrReplace(savesDirectory, "saves", "logs\latest.log")
+               numLines := 0
+               Loop, Read, %logFile%
+               {
+                  numLines += 1
+               }
+               lastSave := false
+               startTime := A_TickCount
+               while (!lastSave)
+               {
+                  if ((A_TickCount - startTime) > 5000)
+                  {
+                     OutputDebug, last save thing timed out
+                     lastSave := True
+                  }
+                  Loop, Read, %logFile%
+                  {
+                     if ((A_TickCount - startTime) > 5000)
+                     {
+                        OutputDebug, last save thing timed out
+                        lastSave := True
+                     }
+                     if ((numLines - A_Index) < 2)
+                     {
+                        if ((InStr(A_LoopReadLine, "Saving chunks for level 'ServerLevel")) and (InStr(A_LoopReadLine, "minecraft:the_end")))
+                        {
+                           OutputDebug, found the saving chunks for the end thing
+                           lastSave := True
+                        }
+                     }
+                  }
+               }
+               OutputDebug, instance %i% needs suspending
+            }
+         }
+      }
+   }
+return
+*/
 #IfWinActive, Minecraft
 {
 F5::Reload ; Reload keybind
-
-^F5:: ; reload PIDs
-   SetupPIDs()
-return
 
 PgUp:: ; Reset keybind that doesn't remove previous world
    ResetAndSwitch(false)
@@ -908,29 +1062,28 @@ End:: ; This is where the keybind for opening to LAN and perching is set.
 return
 
 NumPad1::
-   BackgroundReset(PIDs[1], savesDirectories[1])
+   BackgroundReset(1)
 return
 
 NumPad2::
-   BackgroundReset(PIDs[2], savesDirectories[2])
+   BackgroundReset(2)
 return
 
 NumPad3::
-   BackgroundReset(PIDs[3], savesDirectories[3])
+   BackgroundReset(3)
 return
 
 NumPad4::
-   BackgroundReset(PIDs[4], savesDirectories[4])
+   BackgroundReset(4)
 return
 
-Home::
+Home:: ; reset all inactive instances
    Loop, %numInstances%
    {
-      BackgroundReset(PIDs[A_Index], savesDirectories[A_Index])
+      BackgroundReset(A_Index)
    }
 return
 }
 Insert::
    Test()
 return
-
