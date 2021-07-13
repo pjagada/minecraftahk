@@ -1,12 +1,12 @@
-; Minecraft Reset Script for multiple instances (set seed 1.16)
-; Author:  Peej, with help/code from jojoe77777, Specnr, onvo, SLTRR, DesktopFolder, Four, and _D4rkS0ul_
+; Minecraft Reset Script for multiple instances (1.16+)
+; Author:  Peej, with help/code from jojoe77777, Specnr, Four, onvo, SLTRR, DesktopFolder, and _D4rkS0ul_
 ; Authors are not liable for any run rejections.
 ; To use this script, make sure you have autohotkey installed (autohotkey.com), then right click on the script file, and click "Run Script."
 ; If you make any changes to the script by right clicking and clicking "Edit Script," make sure to reload the script by pressing F5 or by right clicking on the logo in your taskbar and clicking "Reload Script."
 
 ; Script Function / Help:
 ;  The following only apply inside the Minecraft window:
-;   1) When on the title screen or in a previous world (whether paused or unpaused), the "PgUp" key will create a world with the desired seed.
+;   1) When on the title screen or in a previous world (whether paused or unpaused), the "PgUp" key will create a world.
 ;   2) If you are using multiple instances, it will automatically switch to the next instance once the load starts.
 ;   3) "PgDn" will do the same thing as "PgUp," but it will also delete the previous world if the world folder name starts with an underscore (or move it to another folder if you have that option selected).
 ;   4) Make sure you have a world in each saves folder, otherwise it's not going to work.
@@ -41,14 +41,15 @@
 SetWorkingDir %A_ScriptDir%
 
 ; Options:
-global savesDirectories := ["C:\Users\prana\AppData\Roaming\mmc-stable-win32\MultiMC\instances\Instance 1\.minecraft\saves", "C:\Users\prana\AppData\Roaming\mmc-stable-win32\MultiMC\instances\Instance 2\.minecraft\saves"]
+global savesDirectories := ["C:\Users\prana\AppData\Roaming\mmc-stable-win32\MultiMC\instances\Instance 1\.minecraft\saves", "C:\Users\prana\AppData\Roaming\mmc-stable-win32\MultiMC\instances\Instance 2\.minecraft\saves", "C:\Users\prana\AppData\Roaming\mmc-stable-win32\MultiMC\instances\Instance 3\.minecraft\saves"]
 global screenDelay := 70 ; Change this value to increase/decrease the number of time (in milliseconds) that each world creation screen is held for. For your run to be verifiable, each of the three screens of world creation must be shown.
 global worldListWait := 1000 ; The macro will wait for the world list screen to show before proceeding, but sometimes this feature doesn't work, especially if you use fullscreen, and always if you're tabbed out during this part.
                             ; In that case, this number (in milliseconds) defines the hard limit that it will wait after clicking on "Singleplayer" before proceeding.
                             ; This number should basically just be a little longer than your world list screen showing lag.
 
 global difficulty := "Normal" ; Set difficulty here. Options: "Peaceful" "Easy" "Normal" "Hard" "Hardcore"
-global SEED := "-3294725893620991126" ; Default seed is the current Any% SSG 1.16+ seed, you can change it to whatever seed you want.
+global mode := "SSG" ; either SSG or RSG
+global SEED := "-3294725893620991126" ; Default seed is the current Any% SSG 1.16+ seed, you can change it to whatever seed you want (will not do anything if doing rsg).
 
 global countAttempts := "No" ; Change this to "Yes" if you would like the world name to include the attempt number, otherwise, keep it as "No"
                              ; The script will automatically create a text file to track your attempts starting from 1, but if you already have some attempts,
@@ -58,7 +59,7 @@ global worldName := "New World" ; you can name the world whatever you want, put 
                                 ; For example, if you leave this as "New World" and you're on attempt 343, then the world will be named "New World343"
                                 ; To just show the attempt number, change this variable to ""
 
-global previousWorldOption := "delete" ; What to do with the previous world (either "delete" or "move") when the Page Down hotkey is used. If it says "move" then worlds will be moved to a folder called oldWorlds in your .minecraft folder. This does not apply to worlds whose files start with an "_" (without the quotes)
+global previousWorldOption := "move" ; What to do with the previous world (either "delete" or "move") when the Page Down hotkey is used. If it says "move" then worlds will be moved to a folder called oldWorlds in your .minecraft folder. This does not apply to worlds whose files start with an "_" (without the quotes)
 global inputMethod := "key" ; this doesn't work right now for click lmao just leave it as key. either "click" or "key" (click is theoretically faster but kinda experimental at this point and may not work properly depending on your resolution)
 global fullscreenOnLoad = "No" ; change this to "Yes" if you would like the macro ensure that you are in fullscreen mode when the world is ready (a little experimental so I would recommend not using this in case of verification issues)
 global pauseOnLoad := "Yes" ; change this to "No" if you would like the macro to not automatically pause when the world loads in
@@ -323,7 +324,8 @@ CreateWorld(thePID, savesDirectory)
    EnterSingleplayer(thePID)
    WorldListScreen(thePID)
    CreateNewWorldScreen(thePID, savesDirectory)
-   MoreWorldOptionsScreen(thePID)
+   if (mode = "SSG")
+      MoreWorldOptionsScreen(thePID)
 }
 
 WorldListScreen(thePID)
@@ -383,6 +385,8 @@ CreateNewWorldScreen(thePID, savesDirectory)
          }
          ControlSend, ahk_parent, {Tab}{Tab}, ahk_pid %thePID%
       }
+      if (mode = "RSG")
+         ControlSend, ahk_parent, {Tab}, ahk_pid %thePID%
       Sleep, %screenDelay%
       ControlSend, ahk_parent, {enter}, ahk_pid %thePID%
       SetKeyDelay, 1
@@ -447,16 +451,26 @@ CreateNewWorldScreen(thePID, savesDirectory)
          }
       }
       Sleep, %screenDelay%
-      if (GUIscale = 4)
+      if (mode = "SSG")
       {
-         if (InFullscreen(savesDirectory))
-            MouseClick, L, W * 1295 // 1936, H * 780 // 1056, 1
+         if (GUIscale = 4)
+         {
+            if (InFullscreen(savesDirectory))
+               MouseClick, L, W * 1295 // 1936, H * 780 // 1056, 1
+            else
+               MouseClick, L, W * 1295 // 1936, H * 830 // 1056, 1
+         }
          else
-            MouseClick, L, W * 1295 // 1936, H * 830 // 1056, 1
+         {
+            MouseClick, L, W * 1200 // 1936, H * 600 // 1056, 1
+         }
       }
       else
       {
-         MouseClick, L, W * 1200 // 1936, H * 600 // 1056, 1
+         if (GUIscale = 4)
+            MouseClick, L, W * 653 // 1936, H * 978 // 1056, 1
+         else
+            MouseClick, L, W * 725 // 1936, H * 1012 // 1056, 1
       }
    }
 }
@@ -515,13 +529,24 @@ NameWorld(thePID)
    }
    if (countAttempts = "Yes")
    {
-      FileRead, WorldNumber, SSG_1_16.txt
+      if (mode = "SSG")
+         FileRead, WorldNumber, SSG_1_16.txt
+      else
+         FileRead, WorldNumber, RSG_1_16.txt
       if (ErrorLevel)
          WorldNumber = 0
       else
-         FileDelete, SSG_1_16.txt
+      {
+         if (mode = "SSG")
+            FileDelete, SSG_1_16.txt
+         else
+            FileDelete, RSG_1_16.txt
+      }
       WorldNumber += 1
-      FileAppend, %WorldNumber%, SSG_1_16.txt
+      if (mode = "SSG")
+         FileAppend, %WorldNumber%, SSG_1_16.txt
+      else
+         FileAppend, %WorldNumber%, RSG_1_16.txt
       if WinActive("ahk_pid" thePID)
       {
          Sleep, 1
@@ -976,6 +1001,11 @@ if ((unpauseOnSwitch != "Yes") and (unpauseOnSwitch != "No"))
    MsgBox, Choose a valid option for whether or not to unpause on instance switch. Go to the Options section of this script and choose either "Yes" or "No" after the words "global unpauseOnSwitch := "
    ExitApp
 }
+if ((mode != "SSG") and (mode != "RSG"))
+{
+   MsgBox, Choose a valid option for playing SSG or RSG. Go to the Options section of this script and choose either "SSG" or "RSG" after the words "global mode := "
+   ExitApp
+}
 
 Test()
 {
@@ -1084,6 +1114,8 @@ return
 NumPad4::
    BackgroundReset(4)
 return
+
+;continue this pattern above if you have more instances
 
 Home:: ; reset all inactive instances
    Loop, %numInstances%
