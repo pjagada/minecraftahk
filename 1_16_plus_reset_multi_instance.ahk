@@ -41,15 +41,15 @@
 SetWorkingDir %A_ScriptDir%
 
 ; Options:
-global savesDirectories := ["C:\Users\prana\AppData\Roaming\mmc-stable-win32\MultiMC\instances\Instance 1\.minecraft\saves", "C:\Users\prana\AppData\Roaming\mmc-stable-win32\MultiMC\instances\Instance 2\.minecraft\saves", "C:\Users\prana\AppData\Roaming\mmc-stable-win32\MultiMC\instances\Instance 3\.minecraft\saves"]
-global screenDelay := 70 ; Change this value to increase/decrease the number of time (in milliseconds) that each world creation screen is held for. For your run to be verifiable, each of the three screens of world creation must be shown.
-global worldListWait := 1000 ; The macro will wait for the world list screen to show before proceeding, but sometimes this feature doesn't work, especially if you use fullscreen, and always if you're tabbed out during this part.
+global savesDirectories := ["C:\Users\prana\AppData\Roaming\mmc-stable-win32\MultiMC\instances\Instance 1\.minecraft\saves", "C:\Users\prana\AppData\Roaming\mmc-stable-win32\MultiMC\instances\Instance 2\.minecraft\saves"]
+global screenDelay := 50 ; Change this value to increase/decrease the number of time (in milliseconds) that each world creation screen is held for. For your run to be verifiable, each of the three screens of world creation must be shown.
+global worldListWait := 200 ; The macro will wait for the world list screen to show before proceeding, but sometimes this feature doesn't work, especially if you use fullscreen, and always if you're tabbed out during this part.
                             ; In that case, this number (in milliseconds) defines the hard limit that it will wait after clicking on "Singleplayer" before proceeding.
                             ; This number should basically just be a little longer than your world list screen showing lag.
 
 global difficulty := "Normal" ; Set difficulty here. Options: "Peaceful" "Easy" "Normal" "Hard" "Hardcore"
 global mode := "SSG" ; either SSG or RSG
-global SEED := "-3294725893620991126" ; Default seed is the current Any% SSG 1.16+ seed, you can change it to whatever seed you want (will not do anything if doing rsg).
+global SEED := "-4530634556500121041" ; Default seed is the current Any% SSG 1.16+ seed, you can change it to whatever seed you want (will not do anything if doing rsg).
 
 global countAttempts := "No" ; Change this to "Yes" if you would like the world name to include the attempt number, otherwise, keep it as "No"
                              ; The script will automatically create a text file to track your attempts starting from 1, but if you already have some attempts,
@@ -59,7 +59,7 @@ global worldName := "New World" ; you can name the world whatever you want, put 
                                 ; For example, if you leave this as "New World" and you're on attempt 343, then the world will be named "New World343"
                                 ; To just show the attempt number, change this variable to ""
 
-global previousWorldOption := "move" ; What to do with the previous world (either "delete" or "move") when the Page Down hotkey is used. If it says "move" then worlds will be moved to a folder called oldWorlds in your .minecraft folder. This does not apply to worlds whose files start with an "_" (without the quotes)
+global previousWorldOption := "delete" ; What to do with the previous world (either "delete" or "move") when the Page Down hotkey is used. If it says "move" then worlds will be moved to a folder called oldWorlds in your .minecraft folder. This does not apply to worlds whose files start with an "_" (without the quotes)
 global inputMethod := "key" ; this doesn't work right now for click lmao just leave it as key. either "click" or "key" (click is theoretically faster but kinda experimental at this point and may not work properly depending on your resolution)
 global fullscreenOnLoad = "No" ; change this to "Yes" if you would like the macro ensure that you are in fullscreen mode when the world is ready (a little experimental so I would recommend not using this in case of verification issues)
 global pauseOnLoad := "Yes" ; change this to "No" if you would like the macro to not automatically pause when the world loads in
@@ -696,6 +696,7 @@ ResetAndSwitch(removePrevious := True)
    OutputDebug, saves directory is %savesDirectory%
    WinGet, thePID, PID, A
    OutputDebug, thePID is %thePID%
+   /*
    if (FastResetModExist(savesDirectory) or (numInstances = 1))
    {
       OutputDebug, fast reset mod exists or 1 instance only, first resetting then switching
@@ -709,10 +710,11 @@ ResetAndSwitch(removePrevious := True)
    }
    else
    {
-      OutputDebug, fast reset mod does not exist, first switching then resetting
+   */
+      ;OutputDebug, fast reset mod does not exist, first switching then resetting
       DoAReset(thePID, savesDirectory, removePrevious, false, true)
       WinGet, thePID, PID, A
-   }
+   ;}
    OutputDebug, new pid: %thePID%
    savesDirectory := getSavesDirectory()
    OutputDebug, new saves directory: %savesDirectory%
@@ -1017,6 +1019,7 @@ SetMouseDelay, 0
 SetKeyDelay , 1
 SetWinDelay, 1
 global PIDs := [] ;GetAllPIDs()
+global resetQueue := []
 for i, thePID in PIDs
 {
    OutputDebug, PID number %i% is %thePID%
