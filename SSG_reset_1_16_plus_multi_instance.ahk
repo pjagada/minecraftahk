@@ -41,8 +41,8 @@
 SetWorkingDir %A_ScriptDir%
 
 ; Options:
-global savesDirectories := ["C:\Users\prana\AppData\Roaming\mmc-stable-win32\MultiMC\instances\Instance 1\.minecraft\saves", "C:\Users\prana\AppData\Roaming\mmc-stable-win32\MultiMC\instances\Instance 2\.minecraft\saves", "C:\Users\prana\AppData\Roaming\mmc-stable-win32\MultiMC\instances\Instance 3\.minecraft\saves"]
-global screenDelay := 50 ; Change this value to increase/decrease the number of time (in milliseconds) that each world creation screen is held for. For your run to be verifiable, each of the three screens of world creation must be shown.
+global savesDirectories := ["C:\Users\prana\AppData\Roaming\mmc-stable-win32\MultiMC\instances\Instance 1\.minecraft\saves", "C:\Users\prana\AppData\Roaming\mmc-stable-win32\MultiMC\instances\Instance 2\.minecraft\saves"]
+global screenDelay := 70 ; Change this value to increase/decrease the number of time (in milliseconds) that each world creation screen is held for. For your run to be verifiable, each of the three screens of world creation must be shown.
 global worldListWait := 1000 ; The macro will wait for the world list screen to show before proceeding, but sometimes this feature doesn't work, especially if you use fullscreen, and always if you're tabbed out during this part.
                             ; In that case, this number (in milliseconds) defines the hard limit that it will wait after clicking on "Singleplayer" before proceeding.
                             ; This number should basically just be a little longer than your world list screen showing lag.
@@ -63,6 +63,7 @@ global inputMethod := "key" ; this doesn't work right now for click lmao just le
 global fullscreenOnLoad = "No" ; change this to "Yes" if you would like the macro ensure that you are in fullscreen mode when the world is ready (a little experimental so I would recommend not using this in case of verification issues)
 global pauseOnLoad := "Yes" ; change this to "No" if you would like the macro to not automatically pause when the world loads in
 global unpauseOnSwitch := "No" ; change this to "Yes" if you would like the macro to automatically unpause when you switch to the next instance
+
 
 RunHide(Command)
 {
@@ -580,7 +581,7 @@ getMostRecentFile(savesDirectory)
    return (recentFile)
 }
 
-DoEverything(thePID, savesDirectory, fromPause := false)
+DoEverything(thePID, savesDirectory, fromPause := false, switchInMiddle := false)
 {
    WinGetTitle, Title, ahk_pid %thePID%
    if (InStr(Title, "player") or InStr(Title, "Instance"))
@@ -589,6 +590,10 @@ DoEverything(thePID, savesDirectory, fromPause := false)
    {
       ControlSend, ahk_parent, {F11}, ahk_pid %thePID%
       Sleep, 50
+   }
+   if (switchInMiddle)
+   {
+      Switch(thePID)
    }
    startTime := A_TickCount
    confirmedExit := False
@@ -646,9 +651,9 @@ InFullscreen(savesDirectory)
       return 0
 }
 
-DoAReset(thePID, savesDirectory, removePrevious, fromPause := false)
+DoAReset(thePID, savesDirectory, removePrevious, fromPause := false, switchInMiddle := false)
 {
-   lastWorld := DoEverything(thePID, savesDirectory, fromPause)
+   lastWorld := DoEverything(thePID, savesDirectory, fromPause, switchInMiddle)
    OutputDebug, reached title screen
    CreateWorld(thePID, savesDirectory)
    OutputDebug, created world
@@ -659,68 +664,35 @@ DoAReset(thePID, savesDirectory, removePrevious, fromPause := false)
    }
 }
 
-getPID(n)
-{
-   MsgBox, Close this message, click on Instance %n%, and press the F key after you have clicked on that instance.
-   Loop
-   {
-      if GetKeyState("F", "P")
-      {
-         WinGetActiveTitle, title
-         if (InStr(title, "Minecraft"))
-         {
-            WinGet, thePID, PID, A
-            if (n > 1)
-            {
-               m := n - 1
-               Loop, %m%
-               {
-                  PIDcheck := PIDs[A_Index]
-                  if (PIDcheck = thePID)
-                  {
-                     MsgBox, You clicked on the same window for Instance %n% as you did for Instance %A_Index%. Close this message to start over.
-                     Reload
-                  }
-               }
-            }
-            FileAppend, %thePID%`n, PIDs.txt
-            PIDs.Push(thePID)
-            OutputDebug, wrote PID number %thePID% to the file and appended it to the array.
-            return (thePID)
-         }
-         else
-            MsgBox, This is not a Minecraft window. Close this message, click on Instance %n%, and press the P key after you have clicked on that instance.
-      }
-   }
-}
-
 ResetAndSwitch(removePrevious := True)
 {
    ;PIDFileCheck()
    savesDirectory := getSavesDirectory()
-   if (FastResetModExist(savesDirectory))
+   OutputDebug, saves directory is %savesDirectory%
+   WinGet, thePID, PID, A
+   OutputDebug, thePID is %thePID%
+   if (FastResetModExist(savesDirectory) or (numInstances = 1))
    {
-      OutputDebug, fast reset mod exists, first resetting then switching
-      OutputDebug, saves directory is %savesDirectory%
-      WinGet, thePID, PID, A
-      OutputDebug, thePID is %thePID%
+      OutputDebug, fast reset mod exists or 1 instance only, first resetting then switching
       DoAReset(thePID, savesDirectory, removePrevious)
       OutputDebug, menuing done
       if (numInstances > 1)
       {
          OutputDebug, old pid: %thePID%
          thePID := PIDs[Switch(thePID)]
-         OutputDebug, new pid: %thePID%
-         savesDirectory := getSavesDirectory()
-         OutputDebug, new saves directory: %savesDirectory%
       }
-      worldLoadStuff(thePID, savesDirectory)
-      OutputDebug, finished world load stuff
    }
    else
    {
       OutputDebug, fast reset mod does not exist, first switching then resetting
+      DoAReset(thePID, savesDirectory, removePrevious, false, true)
+      WinGet, thePID, PID, A
    }
+   OutputDebug, new pid: %thePID%
+   savesDirectory := getSavesDirectory()
+   OutputDebug, new saves directory: %savesDirectory%
+   worldLoadStuff(thePID, savesDirectory)
+   OutputDebug, finished world load stuff
 }
 
 worldLoadStuff(thePID, savesDirectory)
@@ -820,6 +792,7 @@ DeletePIDsFile()
       OutputDebug, file still not deleted for some reason
 }
 
+global GUIscale
 getGUIscale(savesDirectory) ;used on script startup
 {
    optionsFile := StrReplace(savesDirectory, "saves", "options.txt")
@@ -866,6 +839,41 @@ BackgroundReset(n)
       DoAReset(thePID, savesDirectory, true, true)
    }
    resetAboutToHappen[n] := False
+}
+
+getPID(n)
+{
+   MsgBox, Close this message, click on Instance %n%, and press the F key after you have clicked on that instance.
+   Loop
+   {
+      if GetKeyState("F", "P")
+      {
+         WinGetActiveTitle, title
+         if (InStr(title, "Minecraft"))
+         {
+            WinGet, thePID, PID, A
+            if (n > 1)
+            {
+               m := n - 1
+               Loop, %m%
+               {
+                  PIDcheck := PIDs[A_Index]
+                  if (PIDcheck = thePID)
+                  {
+                     MsgBox, You clicked on the same window for Instance %n% as you did for Instance %A_Index%. Close this message to start over.
+                     Reload
+                  }
+               }
+            }
+            FileAppend, %thePID%`n, PIDs.txt
+            PIDs.Push(thePID)
+            OutputDebug, wrote PID number %thePID% to the file and appended it to the array.
+            return (thePID)
+         }
+         else
+            MsgBox, This is not a Minecraft window. Close this message, click on Instance %n%, and press the P key after you have clicked on that instance.
+      }
+   }
 }
 
 PIDFileCheck()
