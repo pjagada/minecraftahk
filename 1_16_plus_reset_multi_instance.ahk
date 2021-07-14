@@ -41,14 +41,14 @@
 SetWorkingDir %A_ScriptDir%
 
 ; Options:
-global savesDirectories := ["C:\Users\prana\AppData\Roaming\mmc-stable-win32\MultiMC\instances\Instance 1\.minecraft\saves", "C:\Users\prana\AppData\Roaming\mmc-stable-win32\MultiMC\instances\Instance 2\.minecraft\saves", "C:\Users\prana\AppData\Roaming\mmc-stable-win32\MultiMC\instances\Instance 3\.minecraft\saves"]
-global screenDelay := 70 ; Change this value to increase/decrease the number of time (in milliseconds) that each world creation screen is held for. For your run to be verifiable, each of the three screens of world creation must be shown.
-global worldListWait := 1000 ; The macro will wait for the world list screen to show before proceeding, but sometimes this feature doesn't work, especially if you use fullscreen, and always if you're tabbed out during this part.
+global savesDirectories := ["C:\Users\prana\AppData\Roaming\mmc-stable-win32\MultiMC\instances\Instance 1\.minecraft\saves", "C:\Users\prana\AppData\Roaming\mmc-stable-win32\MultiMC\instances\Instance 2\.minecraft\saves"]
+global screenDelay := 50 ; Change this value to increase/decrease the number of time (in milliseconds) that each world creation screen is held for. For your run to be verifiable, each of the three screens of world creation must be shown.
+global worldListWait := 200 ; The macro will wait for the world list screen to show before proceeding, but sometimes this feature doesn't work, especially if you use fullscreen, and always if you're tabbed out during this part.
                             ; In that case, this number (in milliseconds) defines the hard limit that it will wait after clicking on "Singleplayer" before proceeding.
                             ; This number should basically just be a little longer than your world list screen showing lag.
 
 global difficulty := "Normal" ; Set difficulty here. Options: "Peaceful" "Easy" "Normal" "Hard" "Hardcore"
-global mode := "RSG" ; either SSG or RSG
+global mode := "SSG" ; either SSG or RSG
 global SEED := "-4530634556500121041" ; Default seed is the current Any% SSG 1.16+ seed, you can change it to whatever seed you want (will not do anything if doing rsg).
 
 global countAttempts := "No" ; Change this to "Yes" if you would like the world name to include the attempt number, otherwise, keep it as "No"
@@ -62,8 +62,62 @@ global worldName := "New World" ; you can name the world whatever you want, put 
 global previousWorldOption := "delete" ; What to do with the previous world (either "delete" or "move") when the Page Down hotkey is used. If it says "move" then worlds will be moved to a folder called oldWorlds in your .minecraft folder. This does not apply to worlds whose files start with an "_" (without the quotes)
 global inputMethod := "key" ; this doesn't work right now for click lmao just leave it as key. either "click" or "key" (click is theoretically faster but kinda experimental at this point and may not work properly depending on your resolution)
 global fullscreenOnLoad = "No" ; change this to "Yes" if you would like the macro ensure that you are in fullscreen mode when the world is ready (a little experimental so I would recommend not using this in case of verification issues)
-global pauseOnLoad := "No" ; change this to "No" if you would like the macro to not automatically pause when the world loads in
-global unpauseOnSwitch := "Yes" ; change this to "Yes" if you would like the macro to automatically unpause when you switch to the next instance
+global pauseOnLoad := "Yes" ; change this to "No" if you would like the macro to not automatically pause when the world loads in
+global unpauseOnSwitch := "No" ; change this to "Yes" if you would like the macro to automatically unpause when you switch to the next instance
+
+
+RunHide(Command)
+{
+  dhw := A_DetectHiddenWindows
+  DetectHiddenWindows, On
+  Run, %ComSpec%,, Hide, cPid
+  WinWait, ahk_pid %cPid%
+  DetectHiddenWindows, %dhw%
+  DllCall("AttachConsole", "uint", cPid)
+
+  Shell := ComObjCreate("WScript.Shell")
+  Exec := Shell.Exec(Command)
+  Result := Exec.StdOut.ReadAll()
+
+  DllCall("FreeConsole")
+  Process, Close, %cPid%
+Return Result
+}
+
+GetInstanceNum(pid)
+{
+  inst := -1
+  command := Format("powershell.exe $x = Get-WmiObject Win32_Process -Filter \""ProcessId = {1}\""; $x.CommandLine", pid)
+  rawOut := RunHide(command)
+  strArr := StrSplit(rawOut, "--")
+  for i, item in strArr {
+    if (InStr(item, "gameDir")) {
+      item := RTrim(item)
+      StringRight, inst, item, 1
+      break
+    }
+  }
+return inst
+}
+
+GetAllPIDs()
+{
+  orderedPIDs := []
+  loop, %numInstances%
+    orderedPIDs.Push(-1)
+  WinGet, all, list
+  Loop, %all%
+  {
+    WinGet, pid, PID, % "ahk_id " all%A_Index%
+    WinGetTitle, title, ahk_pid %pid%
+    if (InStr(title, "Minecraft* 1.1")) {
+      inst := GetInstanceNum(pid)
+      OutputDebug, inst: %inst%, pid: %pid%
+      orderedPIDs[inst] := pid
+    }
+  }
+return orderedPIDs
+}
 
 fastResetModExist(savesDirectory)
 {
@@ -518,19 +572,17 @@ InputSeed(thePID)
    }
 }
 
-ExitWorld(thePID, savesDirectory)
+ExitWorld(thePID, fromPause := false)
 {
-   ShiftTab(thePID)
-   ControlSend, ahk_parent, {Enter}, ahk_pid %thePID%
-   ControlSend, ahk_parent, {Esc}, ahk_pid %thePID%
-   ShiftTab(thePID)
-   Sleep, 10
-   ControlSend, ahk_parent, {Enter}, ahk_pid %thePID%
-   if (InFullscreen(savesDirectory))
+   if (!fromPause)
    {
-      ControlSend, ahk_parent, {F11}, ahk_pid %thePID%
-      Sleep, 50
+      ShiftTab(thePID)
+      ControlSend, ahk_parent, {Enter}, ahk_pid %thePID%
+      ControlSend, ahk_parent, {Esc}, ahk_pid %thePID%
    }
+   ShiftTab(thePID)
+   ControlSend, ahk_parent, {Enter}, ahk_pid %thePID%
+   
 }
 
 getMostRecentFile(savesDirectory)
@@ -554,11 +606,20 @@ getMostRecentFile(savesDirectory)
    return (recentFile)
 }
 
-DoEverything(thePID, savesDirectory)
+DoEverything(thePID, savesDirectory, fromPause := false, switchInMiddle := false)
 {
    WinGetTitle, Title, ahk_pid %thePID%
    if (InStr(Title, "player") or InStr(Title, "Instance"))
-      ExitWorld(thePID, savesDirectory)
+      ExitWorld(thePID, fromPause)
+   if (InFullscreen(savesDirectory))
+   {
+      ControlSend, ahk_parent, {F11}, ahk_pid %thePID%
+      Sleep, 50
+   }
+   if (switchInMiddle)
+   {
+      Switch(thePID)
+   }
    startTime := A_TickCount
    confirmedExit := False
    lastWorld := getMostRecentFile(savesDirectory)
@@ -615,50 +676,54 @@ InFullscreen(savesDirectory)
       return 0
 }
 
-DoAReset(n)
+DoAReset(thePID, savesDirectory, removePrevious, fromPause := false, switchInMiddle := false)
 {
-   thePID := PIDs[n]
-   savesDirectory := savesDirectories[n]
-   lastWorld := DoEverything(thePID, savesDirectory)
+   lastWorld := DoEverything(thePID, savesDirectory, fromPause, switchInMiddle)
    OutputDebug, reached title screen
    CreateWorld(thePID, savesDirectory)
    OutputDebug, created world
-   DeleteOrMove(lastWorld, savesDirectory)
+   if (removePrevious)
+   {
+      DeleteOrMove(lastWorld, savesDirectory)
+      OutputDebug, removed previous world
+   }
 }
 
-getInstNum()
+ResetAndSwitch(removePrevious := True)
 {
-   WinGet, currentPID, PID, A
-   for i, thePID in PIDs
+   ;PIDFileCheck()
+   savesDirectory := getSavesDirectory()
+   OutputDebug, saves directory is %savesDirectory%
+   WinGet, thePID, PID, A
+   OutputDebug, thePID is %thePID%
+   /*
+   if (FastResetModExist(savesDirectory) or (numInstances = 1))
    {
-      if (thePID = currentPID)
+      OutputDebug, fast reset mod exists or 1 instance only, first resetting then switching
+      DoAReset(thePID, savesDirectory, removePrevious)
+      OutputDebug, menuing done
+      if (numInstances > 1)
       {
-         return (i)
+         OutputDebug, old pid: %thePID%
+         thePID := PIDs[Switch(thePID)]
       }
    }
-}
-
-SwitchAndReset()
-{
-   OutputDebug, switch and reset hotkey pressed
-   n := getInstNum()
-   thePID := PIDs[n]
-   savesDirectory := savesDirectories[n]
-   WinGetTitle, Title, ahk_pid %thePID%
-   if (InStr(Title, "player") or InStr(Title, "Instance"))
+   else
    {
-      OutputDebug, exiting world
-      ExitWorld(thePID, savesDirectories)
-   }
-   Switch(n)
-   BackgroundReset(n)
-   worldLoadStuff(n + 1)
+   */
+      ;OutputDebug, fast reset mod does not exist, first switching then resetting
+      DoAReset(thePID, savesDirectory, removePrevious, false, true)
+      WinGet, thePID, PID, A
+   ;}
+   OutputDebug, new pid: %thePID%
+   savesDirectory := getSavesDirectory()
+   OutputDebug, new saves directory: %savesDirectory%
+   worldLoadStuff(thePID, savesDirectory)
+   OutputDebug, finished world load stuff
 }
 
-worldLoadStuff(n)
+worldLoadStuff(thePID, savesDirectory)
 {
-   thePID := PIDs[n]
-   savesDirectory := savesDirectories[n]
    lastWorld := getMostRecentFile(savesDirectory)
    lockFile := lastWorld . "\session.lock"
    FileRead, sessionlockfile, %lockFile%
@@ -715,9 +780,15 @@ getIGT(savesDirectory) ;unused
    return (justTheNumber)
 }
 
-Switch(currentInstanceNum)
+Switch(thePID)
 {
-   thePID := PIDs[currentInstanceNum]
+   Loop, %numInstances%
+   {
+      if (thePID = PIDs[A_Index])
+      {
+         currentInstanceNum := A_Index
+      }
+   }
    newInstanceNum := currentInstanceNum + 1
    if (currentInstanceNum = numInstances)
    {
@@ -784,61 +855,17 @@ getVersion()
       return (16)
 }
 
-BackgroundReset(n) ; this function is basically just an Enqueue(n) function
+BackgroundReset(n)
 {
-   inQueue := false
-   for i, m in resetQueue
+   resetAboutToHappen[n] := True
+   ;PIDFileCheck()
+   thePID := PIDs[n]
+   savesDirectory := savesDirectories[n]
+   if (!WinActive("ahk_pid" thePID))
    {
-      if (m = n)
-      {
-         inQueue := true
-      }
+      DoAReset(thePID, savesDirectory, true, true)
    }
-   if (!inQueue)
-   {
-      resetQueue.Push(n)
-      OutputDebug, queued instance %n% to be resetted
-   }
-   queueSize := resetQueue.MaxIndex()
-   if (queueSize)
-      OutputDebug, current queue is %queueSize% long
-   for i, n in resetQueue
-   {
-      OutputDebug, item %i% in the queue is instance %n%
-   }
-}
-
-Dequeue()
-{
-   queueSize := resetQueue.MaxIndex()
-   if (queueSize)
-   {
-      instanceToReset := resetQueue[1]
-      OutputDebug, about to dequeue
-      newSize := queueSize - 1
-      Loop, %newSize%
-      {
-         nextIndex := A_Index + 1
-         resetQueue[A_Index] := resetQueue[nextIndex]
-      }
-      resetQueue.Pop()
-      OutputDebug, dequeued instance %n% from queue
-      OutputDebug, New queue:
-      queueSize := resetQueue.MaxIndex()
-      if (queueSize)
-         OutputDebug, current queue is %queueSize% long
-      else
-         OutputDebug, queue is now empty
-      for i, n in resetQueue
-      {
-         OutputDebug, item %i% in the queue is instance %n%
-      }
-      return (instanceToReset)
-   }
-   else
-   {
-      return (0)
-   }
+   resetAboutToHappen[n] := False
 }
 
 getPID(n)
@@ -984,6 +1011,7 @@ if ((mode != "SSG") and (mode != "RSG"))
 
 Test()
 {
+   
 }
 
 SetDefaultMouseSpeed, 0
@@ -1002,16 +1030,6 @@ Loop, %numInstances%
 {
    resetAboutToHappen.Push(False)
 }
-
-Loop,
-{
-   n := Dequeue()
-   if (n)
-   {
-      DoAReset(n)
-   }
-}
-
 /*
 #Persistent
    SetTimer, CheckChanged, 250
@@ -1062,7 +1080,6 @@ CheckChanged:
                   }
                }
                OutputDebug, instance %i% needs suspending
-               ; will add suspending code when i add suspending code
             }
          }
       }
@@ -1073,8 +1090,12 @@ return
 {
 F5::Reload ; Reload keybind
 
+PgUp:: ; Reset keybind that doesn't remove previous world
+   ResetAndSwitch(false)
+return
+
 PgDn:: ; Reset keybind.
-   SwitchAndReset()
+   ResetAndSwitch()
 return
 
 End:: ; This is where the keybind for opening to LAN and perching is set.
