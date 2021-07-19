@@ -1,4 +1,4 @@
-; Minecraft Reset Script (set seed 1.16)
+; Minecraft Reset Script (1.16)
 ; Author:  Peej, with help/code from jojoe77777, onvo, SLTRR, DesktopFolder, Four, and _D4rkS0ul_
 ; Authors are not liable for any run rejections.
 ; To use this script, make sure you have autohotkey installed (autohotkey.com), then right click on the script file, and click "Run Script."
@@ -6,14 +6,14 @@
 
 ; Script Function / Help:
 ;  The following only apply inside the Minecraft window:
-;   1) When on the title screen, the "PgUp" key will create a world with the desired seed.
+;   1) When on the title screen, the "PgUp" key will create a world.
 ;   2) When in a previous world, "PgUp" will exit the world and then auto create another world.
 ;   3) "PgDn" will do the same thing as "PgUp," but it will also delete the previous world (or move it to another folder if you have that option selected).
 ;   4) To just exit the world and not create another world, press "Home" on keyboard.
 ;   5) To open to LAN and make the dragon perch (make sure you're not in an inventory or already paused), press "End"
 ;   6) To change the "PgDn" and "PgUp" and "Home" and "End," scroll down to the bottom of this script, change the character before the double colon "::", and reload the script.
 ;      https://www.autohotkey.com/docs/KeyList.htm Here are a list of the keys you can use.
-;   7) If you want to use a different seed, change the difficulty, or change the world name, scroll down to the Options and you can change those.
+;   7) If you want to use a different seed, change the difficulty, choose RSG or SSG, or change the world name, scroll down to the Options and you can change those.
 ;   8) If you are in a minecraft world and inside an inventory, close that inventory before activating the script (otherwise, the macro will not function properly).
 ;      The macro that creates a new world only works from the title screen, from a previous world paused, or from a previous world unpaused.
 
@@ -43,6 +43,7 @@ global worldListWait := 1000 ; The macro will wait for the world list screen to 
                             ; This number should basically just be a little longer than your world list screen showing lag.
 
 global difficulty := "Normal" ; Set difficulty here. Options: "Peaceful" "Easy" "Normal" "Hard" "Hardcore"
+global mode := "SSG" ; either SSG or RSG
 global SEED := "-3294725893620991126" ; Default seed is the current Any% SSG 1.16+ seed, you can change it to whatever seed you want.
 
 global countAttempts := "No" ; Change this to "Yes" if you would like the world name to include the attempt number, otherwise, keep it as "No"
@@ -87,7 +88,7 @@ global centerPointZ := 194.5 ; this is the z coordinate of that certain point (b
 global radius := 13 ; if this is 10 for example, the autoresetter will not reset if you are within 10 blocks of the point specified above. Set this smaller for better spawns but more resets
 ; if you would only like to reset the blacklisted spawns, then just set this number really large (1000 should be good enough), and if you would only like to play out whitelisted spawns, then just make this number negative
 global message := "" ; what message will pop up when a good spawn is found (if you don't want a message to pop up, change this to "")
-global playSound := "No" ; "Yes" or "No" on whether or not to play that Windows sound when good seed is found. To play a custom sound, just save it as spawnready.mp3 in the same folder as this script.
+global playSound := "Yes" ; "Yes" or "No" on whether or not to play that Windows sound when good seed is found. To play a custom sound, just save it as spawnready.mp3 in the same folder as this script.
 
 fastResetModStuff()
 {
@@ -247,7 +248,8 @@ CreateWorld()
    EnterSingleplayer()
    WorldListScreen()
    CreateNewWorldScreen()
-   MoreWorldOptionsScreen()
+   if (mode = "SSG")
+      MoreWorldOptionsScreen()
 }
 
 WorldListScreen()
@@ -307,6 +309,8 @@ CreateNewWorldScreen()
          }
          ControlSend, ahk_parent, {Tab}{Tab}
       }
+      if (mode = "RSG")
+         ControlSend, ahk_parent, {Tab}
       Sleep, %screenDelay%
       ControlSend, ahk_parent, {enter}
       SetKeyDelay, 1
@@ -371,16 +375,26 @@ CreateNewWorldScreen()
          }
       }
       Sleep, %screenDelay%
-      if (GUIscale = 4)
+      if (mode = "SSG")
       {
-         if (InFullscreen())
-            MouseClick, L, W * 1295 // 1936, H * 780 // 1056, 1
+         if (GUIscale = 4)
+         {
+            if (InFullscreen())
+               MouseClick, L, W * 1295 // 1936, H * 780 // 1056, 1
+            else
+               MouseClick, L, W * 1295 // 1936, H * 830 // 1056, 1
+         }
          else
-            MouseClick, L, W * 1295 // 1936, H * 830 // 1056, 1
+         {
+            MouseClick, L, W * 1200 // 1936, H * 600 // 1056, 1
+         }
       }
       else
       {
-         MouseClick, L, W * 1200 // 1936, H * 600 // 1056, 1
+         if (GUIscale = 4)
+            MouseClick, L, W * 653 // 1936, H * 978 // 1056, 1
+         else
+            MouseClick, L, W * 725 // 1936, H * 1012 // 1056, 1
       }
    }
 }
@@ -479,13 +493,24 @@ NameWorld()
    }
    if (countAttempts = "Yes")
    {
-      FileRead, WorldNumber, SSG_1_16.txt
+      if (mode = "SSG")
+         FileRead, WorldNumber, SSG_1_16.txt
+      else
+         FileRead, WorldNumber, RSG_1_16.txt
       if (ErrorLevel)
          WorldNumber = 0
       else
-         FileDelete, SSG_1_16.txt
+      {
+         if (mode = "SSG")
+            FileDelete, SSG_1_16.txt
+         else
+            FileDelete, RSG_1_16.txt
+      }
       WorldNumber += 1
-      FileAppend, %WorldNumber%, SSG_1_16.txt
+      if (mode = "SSG")
+         FileAppend, %WorldNumber%, SSG_1_16.txt
+      else
+         FileAppend, %WorldNumber%, RSG_1_16.txt
       if WinActive("Minecraft")
       {
          Sleep, 1
@@ -1095,12 +1120,6 @@ if ((fullscreenOnLoad != "Yes") and (fullscreenOnLoad != "No"))
    MsgBox, Choose a valid option for whether or not to fullscreen Minecraft when the load is complete. Go to the Options section of this script and choose either "Yes" or "No" after the words "global fullscreenOnLoad := "
    ExitApp
 }
-;this feature does not work right now: global 2RDOnExit = "No" ; change this to "Yes" if you would like to automatically go to 2 render distance when you reset from a previous world (may not work depending on your resolution, and will not work if you don't have sodium)
-;if ((2RDOnExit != "Yes") and (2RDOnExit != "No"))
-;{
-;   MsgBox, Choose a valid option for whether or not to go to 2 render distance when exiting a world. Go to the Options section of this script and choose either "Yes" or "No" after the words "global 2RDOnExit := "
-;   ExitApp
-;}
 if ((trackFlint != "Yes") and (trackFlint != "No"))
 {
    MsgBox, Choose a valid option for whether or not to track flint rates. Go to the Options section of this script and choose either "Yes" or "No" after the words "global trackFlint := "
@@ -1110,6 +1129,11 @@ if ((PauseOnLostFocus()) && (doAutoResets = "Yes") && (f3pWarning = "enabled"))
 {
    MsgBox, If you would like to use the autoresetter while tabbed out, you will need to disable the "pause on lost focus" feature by pressing F3 + P in-game. If you will not be tabbed out while using the autoresetter, then don't worry about this, and you can disable this warning by changing "global f3pWarning := "enabled"" to "global f3pWarning := "disabled"" This is just a warning message and it will not exit the script, so you do not need to restart the script if you see this.
 }
+if ((mode != "SSG") and (mode != "RSG"))
+{
+   MsgBox, Choose a valid option for playing SSG or RSG. Go to the Options section of this script and choose either "SSG" or "RSG" after the words "global mode := "
+   ExitApp
+}
 
 SetDefaultMouseSpeed, 0
 SetMouseDelay, 0
@@ -1117,6 +1141,11 @@ SetKeyDelay , 1
 SetWinDelay, 1
 ;global oldClipboard
 global currentSpawn := [9999,9999]
+
+if (mode = "RSG")
+{
+   doAutoResets := "No"
+}
 
 #IfWinActive, Minecraft
 {
@@ -1140,10 +1169,6 @@ return
 
 ^B:: ; This is where the keybind is set for adding a spawn to the blacklisted spawns.
    AddToBlacklist()
-return
-
-Insert::
-   Test()
 return
 }
 
