@@ -66,6 +66,7 @@ global fullscreenOnLoad = "Yes" ; change this to "Yes" if you would like the mac
 global f3pWarning := "enabled" ; change this to "disabled" once you've seen the warning
 global trackFlint := "Yes" ; track flint rates (to make sure that it's not counting gravel from non-run worlds, it will only count it if you run it from a previous world)
                            ; Each run will be logged in a file called SSGstats.csv, and cumulative stats will be stored in a file called SSGstats.txt
+global giveAngle := "Yes" ; whether you would like the initial angle to travel at to be said
 
 ; Autoresetter use:
 ;   1) By default, the autoresetter will reset all spawns outside of the set radius of the set focal point and will alert you of any spawns inside or equal to the set radius of the set focal point.
@@ -923,9 +924,27 @@ AlertUser()
       WinActivate, ahk_exe javaw.exe
    if (message != "")
       MsgBox, %message%
+   GiveAngle()
    if ((fullscreenOnLoad = "Yes") && !(InFullscreen()))
       ControlSend, ahk_parent, {F11}
    Send, {%timerReset%}
+}
+
+GiveAngle()
+{
+   if (giveAngle != "No")
+   {
+      xDiff := currentSpawn[1] - centerPointX
+      zDiff := centerPointZ - currentSpawn[2]
+      angle := ATan(xDiff / zDiff) * 180 / 3.14159265358979
+      if (zDiff < 0)
+      {
+         angle := angle - 180
+      }
+      angleList := StrSplit(angle, ".")
+      intAngle := angleList[1]
+      ComObjCreate("SAPI.SpVoice").Speak(intAngle)
+   }
 }
 
 TrackFlint()

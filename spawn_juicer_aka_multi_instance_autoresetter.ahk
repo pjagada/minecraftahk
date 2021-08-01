@@ -45,9 +45,9 @@ SetWorkingDir %A_ScriptDir%  ; Ensures a consistent starting directory.
 
 ;Options:
 
-global savesDirectories := ["C:\Users\prana\AppData\Roaming\mmc-stable-win32\MultiMC\instances\1.17.1 multi 1\.minecraft\saves", "C:\Users\prana\AppData\Roaming\mmc-stable-win32\MultiMC\instances\1.17.1 multi 2\.minecraft\saves", "C:\Users\prana\AppData\Roaming\mmc-stable-win32\MultiMC\instances\1.17.1 multi 3\.minecraft\saves"]
-global screenDelay := 70 ; Change this value to increase/decrease the number of time (in milliseconds) that each world creation screen is held for. For your run to be verifiable, each of the three screens of world creation must be shown.
-global worldListWait := 200 ; The macro will wait for the world list screen to show before proceeding, but sometimes this feature doesn't work, especially if you use fullscreen, and always if you're tabbed out during this part.
+global savesDirectories := ["C:\Users\prana\AppData\Roaming\mmc-stable-win32\MultiMC\instances\1.17.1 multi 1\.minecraft\saves", "C:\Users\prana\AppData\Roaming\mmc-stable-win32\MultiMC\instances\1.17.1 multi 2\.minecraft\saves"]
+global screenDelay := 500 ; Change this value to increase/decrease the number of time (in milliseconds) that each world creation screen is held for. For your run to be verifiable, each of the three screens of world creation must be shown.
+global worldListWait := 70 ; The macro will wait for the world list screen to show before proceeding, but sometimes this feature doesn't work, especially if you use fullscreen, and always if you're tabbed out during this part.
                             ; In that case, this number (in milliseconds) defines the hard limit that it will wait after clicking on "Singleplayer" before proceeding.
                             ; This number should basically just be a little longer than your world list screen showing lag.
 global timeBeforeFreeze := 500 ; if your background instances are freezing on the "Joining World" screen, increase this number.
@@ -65,10 +65,11 @@ global worldName := "New World" ; you can name the world whatever you want, put 
                                 ; For example, if you leave this as "New World" and you're on attempt 343, then the world will be named "New World343"
                                 ; To just show the attempt number, change this variable to ""
 
-global previousWorldOption := "move" ; What to do with the previous world (either "delete" or "move" or "keep".) when the Page Down hotkey is used. If it says "move" then worlds will be moved to a folder called oldWorlds in your .minecraft folder. This does not apply to worlds whose files start with an "_" (without the quotes). If it says "keep" then it will not do anything
+global previousWorldOption := "delete" ; What to do with the previous world (either "delete" or "move" or "keep".) when the Page Down hotkey is used. If it says "move" then worlds will be moved to a folder called oldWorlds in your .minecraft folder. This does not apply to worlds whose files start with an "_" (without the quotes). If it says "keep" then it will not do anything
 global inputMethod := "key" ; either "click" or "key" (click may not work depending on your resolution and GUI scale)
 global fullscreenOnLoad = "No" ; change this to "Yes" if you would like the macro ensure that you are in fullscreen mode when the world is ready (a little experimental so I would recommend not using this in case of verification issues)
 global unpauseOnSwitch := "No" ; change this to "Yes" if you would like the macro to automatically unpause when you switch to the next instance
+global giveAngle := "Yes" ; whether you would like the initial angle to travel at to be said
 
 ; Autoresetter use:
 ;   1) By default, the autoresetter will reset all spawns outside of the set radius of the set focal point and will alert you of any spawns inside or equal to the set radius of the set focal point.
@@ -91,7 +92,7 @@ global unpauseOnSwitch := "No" ; change this to "Yes" if you would like the macr
 ; The autoresetter will automatically reset if your spawn is greater than a certain number of blocks away from a certain point (ignoring y)
 global centerPointX := 162.7 ; this is the x coordinate of that certain point (by default it's the x coordinate of being pushed up against the window of the blacksmith of -3294725893620991126)
 global centerPointZ := 194.5 ; this is the z coordinate of that certain point (by default it's the z coordinate of being pushed up against the window of the blacksmith of -3294725893620991126)
-global radius := 13 ; if this is 10 for example, the autoresetter will not reset if you are within 10 blocks of the point specified above. Set this smaller for better spawns but more resets
+global radius := 40 ; if this is 10 for example, the autoresetter will not reset if you are within 10 blocks of the point specified above. Set this smaller for better spawns but more resets
 ; if you would only like to reset the blacklisted spawns, then just set this number really large (1000 should be good enough), and if you would only like to play out whitelisted spawns, then just make this number negative
 global message := "" ; what message will pop up when a good spawn is found (if you don't want a message to pop up, change this to "")
 global playSound := "No" ; "Yes" or "No" on whether or not to play that Windows sound when good seed is found. To play a custom sound, just save it as spawnready.mp3 in the same folder as this script.
@@ -226,7 +227,7 @@ Perch()
 
 global numInstances = savesDirectories.MaxIndex()
 OutputDebug, %numInstances% instances being used
-Loop, %numInstances%
+;Loop, %numInstances%
 	
 global GUIscale := 0
 getGUIscale(savesDirectory) ;used on script startup
@@ -721,6 +722,23 @@ InputSeed(thePID)
    }
 }
 
+GiveAngle(n)
+{
+   if (giveAngle != "No")
+   {
+      xDiff := xCoords[n] - centerPointX
+      zDiff := centerPointZ - zCoords[n]
+      angle := ATan(xDiff / zDiff) * 180 / 3.14159265358979
+      if (zDiff < 0)
+      {
+         angle := angle - 180
+      }
+      angleList := StrSplit(angle, ".")
+      intAngle := angleList[1]
+      ComObjCreate("SAPI.SpVoice").Speak(intAngle)
+   }
+}
+
 GoodSpawn(n)
 {
    /*
@@ -793,6 +811,8 @@ SwitchTo(instanceNum)
    states[instanceNum] := "running"
 }
 
+
+
 InFullscreen(savesDirectory)
 {
    optionsFile := StrReplace(savesDirectory, "saves", "options.txt")
@@ -821,6 +841,7 @@ AlertUser(n)
 	{
 		Send, {Esc}
 	}
+    GiveAngle()
 }
 
 global keepLooping
