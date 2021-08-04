@@ -745,14 +745,35 @@ GiveAngle(n)
    if (giveAngle != "No")
    {
       xDiff := xCoords[n] - centerPointX
+      currentX := xCoords[n]
+      OutputDebug, current x coords %currentX% minus destination X %centerPointX% equals %xDiff%
       zDiff := centerPointZ - zCoords[n]
+      currentZ := zCoords[n]
+      OutputDebug, destination Z %centerPointZ% minus current z coords %currentZ% equals %zDiff%
       angle := ATan(xDiff / zDiff) * 180 / 3.14159265358979
+      OutputDebug, raw angle is %angle%
       if (zDiff < 0)
       {
          angle := angle - 180
+         OutputDebug, destination is north of spawn so subtracting 180 from angle for new angle of %angle%
+      }
+      if (zDiff = 0)
+      {
+         OutputDebug, z difference is 0 so it's a 90 degree
+         if (xDiff < 0)
+         {
+            OutputDebug, x difference is negative so angle is -90 degrees
+            angle := -90.0
+         }
+         else if (xDiff > 0)
+         {
+            OutputDebug, x difference is positive so angle is 90 degrees
+            angle := 90.0
+         }
       }
       angleList := StrSplit(angle, ".")
       intAngle := angleList[1]
+      OutputDebug, integer angle is %intAngle%
       ComObjCreate("SAPI.SpVoice").Speak(intAngle)
    }
 }

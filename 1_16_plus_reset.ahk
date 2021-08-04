@@ -62,7 +62,7 @@ global inputMethod := "click" ; either "click" or "key" (click is theoretically 
 global windowedReset := "Yes" ; change this to "Yes" if you would like to ensure that you are in windowed mode during resets (in other words, it will press f11 every time you reset if you are in fullscreen)
 global pauseOnLoad := "Yes" ; change this to "No" if you would like the macro to not automatically pause when the world loads in (this is automatically enabled if you're using the autoresetter)
 global activateMCOnLoad := "Yes" ; change this to "No" if you would not like the macro to pull up Minecraft when the world is ready (or when spawn is ready when autoresetter is enabled)
-global fullscreenOnLoad = "Yes" ; change this to "Yes" if you would like the macro ensure that you are in fullscreen mode when the world is ready (the world will be activated to ensure that no recording is lost)
+global fullscreenOnLoad = "No" ; change this to "Yes" if you would like the macro ensure that you are in fullscreen mode when the world is ready (the world will be activated to ensure that no recording is lost)
 global f3pWarning := "enabled" ; change this to "disabled" once you've seen the warning
 global trackFlint := "Yes" ; track flint rates (to make sure that it's not counting gravel from non-run worlds, it will only count it if you run it from a previous world)
                            ; Each run will be logged in a file called SSGstats.csv, and cumulative stats will be stored in a file called SSGstats.txt
@@ -1005,14 +1005,35 @@ GiveAngle()
    if (giveAngle != "No")
    {
       xDiff := currentSpawn[1] - centerPointX
+      currentX := currentSpawn[1]
+      OutputDebug, current x coords %currentX% minus destination X %centerPointX% equals %xDiff%
       zDiff := centerPointZ - currentSpawn[2]
+      currentZ := currentSpawn[2]
+      OutputDebug, destination Z %centerPointZ% minus current z coords %currentZ% equals %zDiff%
       angle := ATan(xDiff / zDiff) * 180 / 3.14159265358979
+      OutputDebug, raw angle is %angle%
       if (zDiff < 0)
       {
          angle := angle - 180
+         OutputDebug, destination is north of spawn so subtracting 180 from angle for new angle of %angle%
+      }
+      if (zDiff = 0)
+      {
+         OutputDebug, z difference is 0 so it's a 90 degree
+         if (xDiff < 0)
+         {
+            OutputDebug, x difference is negative so angle is -90 degrees
+            angle := -90.0
+         }
+         else if (xDiff > 0)
+         {
+            OutputDebug, x difference is positive so angle is 90 degrees
+            angle := 90.0
+         }
       }
       angleList := StrSplit(angle, ".")
       intAngle := angleList[1]
+      OutputDebug, integer angle is %intAngle%
       ComObjCreate("SAPI.SpVoice").Speak(intAngle)
    }
 }
