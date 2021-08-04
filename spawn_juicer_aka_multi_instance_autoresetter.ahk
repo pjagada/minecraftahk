@@ -45,8 +45,8 @@ SetWorkingDir %A_ScriptDir%  ; Ensures a consistent starting directory.
 
 ;Options:
 
-global savesDirectories := ["C:\Users\prana\AppData\Roaming\mmc-stable-win32\MultiMC\instances\1.17.1 multi 1\.minecraft\saves", "C:\Users\prana\AppData\Roaming\mmc-stable-win32\MultiMC\instances\1.17.1 multi 2\.minecraft\saves"]
-global screenDelay := 500 ; Change this value to increase/decrease the number of time (in milliseconds) that each world creation screen is held for. For your run to be verifiable, each of the three screens of world creation must be shown.
+global savesDirectories := ["C:\Users\prana\AppData\Roaming\mmc-stable-win32\MultiMC\instances\1.17.1\.minecraft\saves"]
+global screenDelay := 200 ; Change this value to increase/decrease the number of time (in milliseconds) that each world creation screen is held for. For your run to be verifiable, each of the three screens of world creation must be shown.
 global worldListWait := 70 ; The macro will wait for the world list screen to show before proceeding, but sometimes this feature doesn't work, especially if you use fullscreen, and always if you're tabbed out during this part.
                             ; In that case, this number (in milliseconds) defines the hard limit that it will wait after clicking on "Singleplayer" before proceeding.
                             ; This number should basically just be a little longer than your world list screen showing lag.
@@ -67,9 +67,17 @@ global worldName := "New World" ; you can name the world whatever you want, put 
 
 global previousWorldOption := "delete" ; What to do with the previous world (either "delete" or "move" or "keep".) when the Page Down hotkey is used. If it says "move" then worlds will be moved to a folder called oldWorlds in your .minecraft folder. This does not apply to worlds whose files start with an "_" (without the quotes). If it says "keep" then it will not do anything
 global inputMethod := "key" ; either "click" or "key" (click may not work depending on your resolution and GUI scale)
-global fullscreenOnLoad = "No" ; change this to "Yes" if you would like the macro ensure that you are in fullscreen mode when the world is ready (a little experimental so I would recommend not using this in case of verification issues)
+global fullscreenOnLoad = "Yes" ; change this to "Yes" if you would like the macro ensure that you are in fullscreen mode when the world is ready (a little experimental so I would recommend not using this in case of verification issues)
 global unpauseOnSwitch := "No" ; change this to "Yes" if you would like the macro to automatically unpause when you switch to the next instance
 global giveAngle := "Yes" ; whether you would like the initial angle to travel at to be said
+
+global doSettingsReset := "Yes" ; this will detect whether your FOV or render distance are off your normal settings and reset them. Iff you have this selected as "Yes" then fill out the following options.
+; To get the mouse coordinates, hover over the point, and press Control R while the script is active to display the coordinates on the screen and copy them to your clipboard, then just paste them at the corresponding location in the lines below.
+global FOV := 80 ; for quake pro put 110
+global FOVcoords := [712, 185] ; these are the mouse coordinates of the FOV above in your options menu
+global renderDistance := 2
+global RDcoords := [444, 160] ; these are the mouse coordinates of the render distance above in your video settings menu
+global applyVideoSettingsCoords := [1491, 987] ; these are the moue coordinates of the apply button in sodium video settings
 
 ; Autoresetter use:
 ;   1) By default, the autoresetter will reset all spawns outside of the set radius of the set focal point and will alert you of any spawns inside or equal to the set radius of the set focal point.
@@ -92,7 +100,7 @@ global giveAngle := "Yes" ; whether you would like the initial angle to travel a
 ; The autoresetter will automatically reset if your spawn is greater than a certain number of blocks away from a certain point (ignoring y)
 global centerPointX := 162.7 ; this is the x coordinate of that certain point (by default it's the x coordinate of being pushed up against the window of the blacksmith of -3294725893620991126)
 global centerPointZ := 194.5 ; this is the z coordinate of that certain point (by default it's the z coordinate of being pushed up against the window of the blacksmith of -3294725893620991126)
-global radius := 40 ; if this is 10 for example, the autoresetter will not reset if you are within 10 blocks of the point specified above. Set this smaller for better spawns but more resets
+global radius := 13 ; if this is 10 for example, the autoresetter will not reset if you are within 10 blocks of the point specified above. Set this smaller for better spawns but more resets
 ; if you would only like to reset the blacklisted spawns, then just set this number really large (1000 should be good enough), and if you would only like to play out whitelisted spawns, then just make this number negative
 global message := "" ; what message will pop up when a good spawn is found (if you don't want a message to pop up, change this to "")
 global playSound := "No" ; "Yes" or "No" on whether or not to play that Windows sound when good seed is found. To play a custom sound, just save it as spawnready.mp3 in the same folder as this script.
@@ -308,6 +316,16 @@ if ((fullscreenOnLoad != "Yes") and (fullscreenOnLoad != "No"))
 if ((unpauseOnSwitch != "Yes") and (unpauseOnSwitch != "No"))
 {
    MsgBox, Choose a valid option for whether or not to unpause on instance switch. Go to the Options section of this script and choose either "Yes" or "No" after the words "global unpauseOnSwitch := "
+   ExitApp
+}
+if ((doSettingsReset != "Yes") and (doSettingsReset != "No"))
+{
+   MsgBox, Choose a valid option for whether or not to automatically reset settings. Go to the Options section of this script and choose either "Yes" or "No" after the words "global doSettingsReset := "
+   ExitApp
+}
+if ((FOV > 110) or (FOV < 30))
+{
+   MsgBox, the FOV you entered is either too large or too small. Go to the Options section of this script and choose an FOV between 30 and 110 (inclusive) after the words "global FOV := "
    ExitApp
 }
 
@@ -825,6 +843,7 @@ InFullscreen(savesDirectory)
 
 AlertUser(n)
 {
+   thePID := PIDs[n]
 	if (playSound = "Yes")
 	{
 		if (FileExist("spawnready.mp3"))
@@ -841,7 +860,7 @@ AlertUser(n)
 	{
 		Send, {Esc}
 	}
-    GiveAngle()
+    GiveAngle(n)
 }
 
 global keepLooping
@@ -978,6 +997,10 @@ MainLoop()
 			}
 			else if (state = "exiting screen")
 			{
+               thePID := PIDs[i]
+               WinGetTitle, Title, ahk_pid %thePID%
+               if ((InStr(Title, "player")) or (InStr(Title, "Instance")))
+                  ControlSend, ahk_parent, {Enter}, ahk_pid %thePID%
 				savesDirectory := savesDirectories[i]
 				lastWorld := getMostRecentFile(savesDirectory)
 				lockFile := lastWorld . "\session.lock"
@@ -1089,9 +1112,79 @@ Test()
 
 ExitCurrentWorld()
 {
-	Send, {Esc}+{Tab}{Enter}
-	currentInst := getActiveInstance()
-	states[currentInst] := "exiting screen"
+   currentInst := getActiveInstance()
+   settingsGood := True
+   if (doSettingsReset = "Yes")
+   {
+      settingsGood := CheckSettings(currentInst)
+   }
+   if (settingsGood)
+   {
+      Send, {Esc}+{Tab}{Enter}
+   }
+   else
+   {
+      Send, {Esc}
+      Send, {Tab 6}{Enter}
+      Send, {Tab}
+      FixFOV()
+      Send, {Tab 5}{Enter}
+      FixRD()
+      Send, {Esc}
+      Send, {Tab 12}
+      Send, {Enter}
+      Send, +{Tab}
+      Send, {Enter}
+   }
+   states[currentInst] := "exiting screen"
+}
+
+FixFOV()
+{
+   MouseClick, L, FOVcoords[1], FOVcoords[2]
+   Sleep, 100
+}
+
+FixRD()
+{
+   MouseClick, L, RDcoords[1], RDcoords[2]
+   Sleep, 1
+   MouseClick, L, applyVideoSettingsCoords[1], applyVideoSettingsCoords[2]
+   Sleep, 100
+}
+
+CheckSettings(n)
+{
+   savesDirectory := savesDirectories[n]
+   oFOV := (FOV - 70) / 40
+   optionsFile := StrReplace(savesDirectory, "saves", "options.txt")
+   if (version = 16)
+   {
+      FileReadLine, fovLine, %optionsFile%, 22
+      FileReadLine, RDLine, %optionsFile%, 24
+   }
+   else
+   {
+      FileReadLine, fovLine, %optionsFile%, 23
+      FileReadLine, RDLine, %optionsFile%, 27
+   }
+   arr1 := StrSplit(fovLine, ":")
+   arr2 := StrSplit(RDline, ":")
+   decimalFov := arr1[2]
+   OutputDebug, current FOV is %decimalFov% and desired FOV is %oFOV%
+   currentRD := arr2[2]
+   OutputDebug, current render distance is %currentRD% and desired render distance is %renderDistance%
+   if (decimalFov != oFOV)
+   {
+      OutputDebug, gonna do settings reset cause fovs don't match
+      return False
+   }
+   if (currentRD != renderDistance)
+   {
+      OutputDebug, gonna do settings reset cause rds don't match
+      return False
+   }
+   return True
 }
 
 getActiveInstance()
@@ -1155,6 +1248,14 @@ ResumeInstance(pid) {
     DllCall("ntdll.dll\NtResumeProcess", "Int", hProcess)
     DllCall("CloseHandle", "Int", hProcess)
   }
+}
+
+ShowAndCopyCoords()
+{
+   MouseGetPos, X, Y
+   theString := "[" . X . ", " . Y . "]"
+   Clipboard := theString
+   MsgBox, %theString%
 }
 
 SetDefaultMouseSpeed, 0
@@ -1251,5 +1352,9 @@ MainLoop()
    ^End:: ; This is where the keybind is set to safely close the script
       UnsuspendAll()
       ExitApp
+   return
+   
+   ^R::
+      ShowAndCopyCoords()
    return
 }

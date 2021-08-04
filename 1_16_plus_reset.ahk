@@ -1,4 +1,4 @@
-; Minecraft Reset Script (1.16)
+; Minecraft Reset Script (1.16+)
 ; Author:  Peej, with help/code from jojoe77777, onvo, SLTRR, DesktopFolder, Four, and _D4rkS0ul_
 ; Authors are not liable for any run rejections.
 ; To use this script, make sure you have autohotkey installed (autohotkey.com), then right click on the script file, and click "Run Script."
@@ -66,7 +66,15 @@ global fullscreenOnLoad = "Yes" ; change this to "Yes" if you would like the mac
 global f3pWarning := "enabled" ; change this to "disabled" once you've seen the warning
 global trackFlint := "Yes" ; track flint rates (to make sure that it's not counting gravel from non-run worlds, it will only count it if you run it from a previous world)
                            ; Each run will be logged in a file called SSGstats.csv, and cumulative stats will be stored in a file called SSGstats.txt
-global giveAngle := "Yes" ; whether you would like the initial angle to travel at to be said
+global giveAngle := "Yes" ; whether you would like the initial angle to travel at to be said (i think this only works if autoresetter is enabled)
+
+global doSettingsReset := "Yes" ; this will detect whether your FOV or render distance are off your normal settings and reset them. Iff you have this selected as "Yes" then fill out the following options.
+; To get the mouse coordinates, hover over the point, and press Control R while the script is active to display the coordinates on the screen and copy them to your clipboard, then just paste them at the corresponding location in the lines below.
+global FOV := 80 ; for quake pro put 110
+global FOVcoords := [712, 185] ; these are the mouse coordinates of the FOV above in your options menu
+global renderDistance := 2
+global RDcoords := [444, 160] ; these are the mouse coordinates of the render distance above in your video settings menu
+global applyVideoSettingsCoords := [1491, 987] ; these are the moue coordinates of the apply button in sodium video settings
 
 ; Autoresetter use:
 ;   1) By default, the autoresetter will reset all spawns outside of the set radius of the set focal point and will alert you of any spawns inside or equal to the set radius of the set focal point.
@@ -541,16 +549,92 @@ InputSeed()
 
 ExitWorld(manualReset := True)
 {
-   if (manualReset)
+   if (!manualReset)
+   {
+      Sleep, 10
+      ShiftTab(1)
+      ControlSend, ahk_parent, {Enter}
+      return
+   }
+   settingsGood := True
+   if (doSettingsReset = "Yes")
+   {
+      settingsGood := CheckSettings()
+   }
+   
+   if (settingsGood)
    {
       ShiftTab(1)
       ControlSend, ahk_parent, {Enter}
+      Sleep, 10
       ControlSend, ahk_parent, {Esc}
-      ;ChangeRD()
+      Sleep, 10
+      ShiftTab(1)
+      ControlSend, ahk_parent, {Enter}
+      return
    }
-   Sleep, 10
-   ShiftTab(1)
-   ControlSend, ahk_parent, {Enter}
+   else
+   {
+      ControlSend, ahk_parent, {Esc}
+      ControlSend, ahk_parent, {Tab 6}{Enter}
+      ControlSend, ahk_parent, {Tab}
+      FixFOV()
+      ControlSend, ahk_parent, {Tab 5}{Enter}
+      FixRD()
+      ControlSend, ahk_parent, {Esc}
+      ControlSend, ahk_parent, {Tab 12}
+      ControlSend, ahk_parent, {Enter}
+      ShiftTab(1)
+      ControlSend, ahk_parent, {Enter}
+   }
+   
+   
+}
+
+FixFOV()
+{
+   /*
+   previousDelay := A_KeyDelay
+   SetKeyDelay, 1
+   oFOV := (FOV - 70) / 40
+   optionsFile := StrReplace(savesDirectory, "saves", "options.txt")
+   
+   Loop
+   {
+      if (version = 16)
+         FileReadLine, fovLine, %optionsFile%, 22
+      else
+         FileReadLine, fovLine, %optionsFile%, 23
+      arr := StrSplit(fovLine, ":")
+      decimalFov := arr[2]
+      if (decimalFov = oFOV)
+      {
+         OutputDebug, reached fov
+         SetKeyDelay, %previousDelay%
+         break
+      }
+      else if (decimalFov < oFOV)
+      {
+         OutputDebug, current fov is less than desired, sending right
+         ControlSend, ahk_parent, {Right}
+      }
+      else
+      {
+         OutputDebug, current fov is more than desired, sending left
+         ControlSend, ahk_parent, {Left}
+      }
+   }
+   */
+   MouseClick, L, FOVcoords[1], FOVcoords[2]
+   Sleep, 100
+}
+
+FixRD()
+{
+   MouseClick, L, RDcoords[1], RDcoords[2]
+   Sleep, 1
+   MouseClick, L, applyVideoSettingsCoords[1], applyVideoSettingsCoords[2]
+   Sleep, 100
 }
 
 getMostRecentFile()
@@ -769,20 +853,6 @@ DoSomeResets(removePrevious := True)
       counter += 1
    }
 }
-/*
-WaitForClipboardUpdate()
-{
-   startTime = A_TickCount
-   Loop
-   {
-      if ((A_TickCount - clipboardLoadTime) > startTime)
-         break
-      if (Clipboard != oldClipboard)
-         break
-      Sleep, 10
-   }
-}
-*/
 
 WaitForLoadIn()
 {
@@ -924,9 +994,9 @@ AlertUser()
       WinActivate, ahk_exe javaw.exe
    if (message != "")
       MsgBox, %message%
-   GiveAngle()
    if ((fullscreenOnLoad = "Yes") && !(InFullscreen()))
       ControlSend, ahk_parent, {F11}
+   GiveAngle()
    Send, {%timerReset%}
 }
 
@@ -1088,8 +1158,45 @@ UpdateStats()
    }
 }
 
-Test()
+CheckSettings()
 {
+   oFOV := (FOV - 70) / 40
+   optionsFile := StrReplace(savesDirectory, "saves", "options.txt")
+   if (version = 16)
+   {
+      FileReadLine, fovLine, %optionsFile%, 22
+      FileReadLine, RDLine, %optionsFile%, 24
+   }
+   else
+   {
+      FileReadLine, fovLine, %optionsFile%, 23
+      FileReadLine, RDLine, %optionsFile%, 27
+   }
+   arr1 := StrSplit(fovLine, ":")
+   arr2 := StrSplit(RDline, ":")
+   decimalFov := arr1[2]
+   currentRD := arr2[2]
+   if (decimalFov != oFOV)
+   {
+      return False
+   }
+   if (currentRD != renderDistance)
+   {
+      return False
+   }
+   return True
+}
+
+ShowAndCopyCoords()
+{
+   MouseGetPos, X, Y
+   theString := "[" . X . ", " . Y . "]"
+   Clipboard := theString
+   MsgBox, %theString%
+}
+
+Test()
+{  
    
 }
 
@@ -1157,6 +1264,16 @@ if ((mode != "SSG") and (mode != "RSG"))
    MsgBox, Choose a valid option for playing SSG or RSG. Go to the Options section of this script and choose either "SSG" or "RSG" after the words "global mode := "
    ExitApp
 }
+if ((doSettingsReset != "Yes") and (doSettingsReset != "No"))
+{
+   MsgBox, Choose a valid option for whether or not to automatically reset settings. Go to the Options section of this script and choose either "Yes" or "No" after the words "global doSettingsReset := "
+   ExitApp
+}
+if ((FOV > 110) or (FOV < 30))
+{
+   MsgBox, the FOV you entered is either too large or too small. Go to the Options section of this script and choose an FOV between 30 and 110 (inclusive) after the words "global FOV := "
+   ExitApp
+}
 
 SetDefaultMouseSpeed, 0
 SetMouseDelay, 0
@@ -1192,6 +1309,14 @@ return
 
 ^B:: ; This is where the keybind is set for adding a spawn to the blacklisted spawns.
    AddToBlacklist()
+return
+
+^R::
+   ShowAndCopyCoords()
+return
+
+Insert::
+   Test()
 return
 }
 
