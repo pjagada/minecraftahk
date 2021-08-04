@@ -41,15 +41,15 @@
 SetWorkingDir %A_ScriptDir%
 
 ; Options:
-global savesDirectories := ["C:\Users\prana\AppData\Roaming\mmc-stable-win32\MultiMC\instances\Instance 1\.minecraft\saves", "C:\Users\prana\AppData\Roaming\mmc-stable-win32\MultiMC\instances\Instance 2\.minecraft\saves"]
+global savesDirectories := ["C:\Users\prana\AppData\Roaming\mmc-stable-win32\MultiMC\instances\1.16.11\.minecraft\saves"]
 global screenDelay := 50 ; Change this value to increase/decrease the number of time (in milliseconds) that each world creation screen is held for. For your run to be verifiable, each of the three screens of world creation must be shown.
 global worldListWait := 200 ; The macro will wait for the world list screen to show before proceeding, but sometimes this feature doesn't work, especially if you use fullscreen, and always if you're tabbed out during this part.
                             ; In that case, this number (in milliseconds) defines the hard limit that it will wait after clicking on "Singleplayer" before proceeding.
                             ; This number should basically just be a little longer than your world list screen showing lag.
 
 global difficulty := "Normal" ; Set difficulty here. Options: "Peaceful" "Easy" "Normal" "Hard" "Hardcore"
-global mode := "SSG" ; either SSG or RSG
-global SEED := "-4530634556500121041" ; Default seed is the current Any% SSG 1.16+ seed, you can change it to whatever seed you want (will not do anything if doing rsg).
+global mode := "RSG" ; either SSG or RSG
+global SEED := "-3294725893620991126" ; Default seed is the current Any% SSG 1.16+ seed, you can change it to whatever seed you want (will not do anything if doing rsg).
 
 global countAttempts := "No" ; Change this to "Yes" if you would like the world name to include the attempt number, otherwise, keep it as "No"
                              ; The script will automatically create a text file to track your attempts starting from 1, but if you already have some attempts,
@@ -59,65 +59,11 @@ global worldName := "New World" ; you can name the world whatever you want, put 
                                 ; For example, if you leave this as "New World" and you're on attempt 343, then the world will be named "New World343"
                                 ; To just show the attempt number, change this variable to ""
 
-global previousWorldOption := "delete" ; What to do with the previous world (either "delete" or "move") when the Page Down hotkey is used. If it says "move" then worlds will be moved to a folder called oldWorlds in your .minecraft folder. This does not apply to worlds whose files start with an "_" (without the quotes)
-global inputMethod := "key" ; this doesn't work right now for click lmao just leave it as key. either "click" or "key" (click is theoretically faster but kinda experimental at this point and may not work properly depending on your resolution)
+global previousWorldOption := "move" ; What to do with the previous world (either "delete" or "move") when the Page Down hotkey is used. If it says "move" then worlds will be moved to a folder called oldWorlds in your .minecraft folder. This does not apply to worlds whose files start with an "_" (without the quotes)
+global inputMethod := "click" ; either "click" or "key" (click is theoretically faster but kinda experimental at this point and may not work properly depending on your resolution)
 global fullscreenOnLoad = "No" ; change this to "Yes" if you would like the macro ensure that you are in fullscreen mode when the world is ready (a little experimental so I would recommend not using this in case of verification issues)
-global pauseOnLoad := "Yes" ; change this to "No" if you would like the macro to not automatically pause when the world loads in
+global pauseOnLoad := "No" ; change this to "No" if you would like the macro to not automatically pause when the world loads in
 global unpauseOnSwitch := "No" ; change this to "Yes" if you would like the macro to automatically unpause when you switch to the next instance
-
-
-RunHide(Command)
-{
-  dhw := A_DetectHiddenWindows
-  DetectHiddenWindows, On
-  Run, %ComSpec%,, Hide, cPid
-  WinWait, ahk_pid %cPid%
-  DetectHiddenWindows, %dhw%
-  DllCall("AttachConsole", "uint", cPid)
-
-  Shell := ComObjCreate("WScript.Shell")
-  Exec := Shell.Exec(Command)
-  Result := Exec.StdOut.ReadAll()
-
-  DllCall("FreeConsole")
-  Process, Close, %cPid%
-Return Result
-}
-
-GetInstanceNum(pid)
-{
-  inst := -1
-  command := Format("powershell.exe $x = Get-WmiObject Win32_Process -Filter \""ProcessId = {1}\""; $x.CommandLine", pid)
-  rawOut := RunHide(command)
-  strArr := StrSplit(rawOut, "--")
-  for i, item in strArr {
-    if (InStr(item, "gameDir")) {
-      item := RTrim(item)
-      StringRight, inst, item, 1
-      break
-    }
-  }
-return inst
-}
-
-GetAllPIDs()
-{
-  orderedPIDs := []
-  loop, %numInstances%
-    orderedPIDs.Push(-1)
-  WinGet, all, list
-  Loop, %all%
-  {
-    WinGet, pid, PID, % "ahk_id " all%A_Index%
-    WinGetTitle, title, ahk_pid %pid%
-    if (InStr(title, "Minecraft* 1.1")) {
-      inst := GetInstanceNum(pid)
-      OutputDebug, inst: %inst%, pid: %pid%
-      orderedPIDs[inst] := pid
-    }
-  }
-return orderedPIDs
-}
 
 fastResetModExist(savesDirectory)
 {
@@ -806,7 +752,6 @@ Switch(thePID)
 SwitchTo(instanceNum)
 {
    WinActivate, OBS
-   WinActivate, DebugView
    thePID := PIDs[instanceNum]
    WinActivate, ahk_pid %thePID%
 }
@@ -1126,7 +1071,8 @@ Home:: ; reset all inactive instances
       BackgroundReset(A_Index)
    }
 return
-}
+
 Insert::
    Test()
 return
+}
