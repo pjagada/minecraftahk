@@ -36,14 +36,14 @@
 SetWorkingDir %A_ScriptDir%
 
 ; Options:
-global savesDirectory := "C:\Users\prana\AppData\Roaming\mmc-stable-win32\MultiMC\instances\1.17.1\.minecraft\saves" ; input your minecraft saves directory here. It will probably start with "C:\Users..." and end with "\minecraft\saves"
-global screenDelay := 200 ; Change this value to increase/decrease the number of time (in milliseconds) that each world creation screen is held for. For your run to be verifiable, each of the three screens of world creation must be shown.
+global savesDirectory := "C:\Users\prana\AppData\Roaming\mmc-stable-win32\MultiMC\instances\1.16.11\.minecraft\saves" ; input your minecraft saves directory here. It will probably start with "C:\Users..." and end with "\minecraft\saves"
+global screenDelay := 150 ; Change this value to increase/decrease the number of time (in milliseconds) that each world creation screen is held for. For your run to be verifiable, each of the three screens of world creation must be shown.
 global worldListWait := 100 ; The macro will wait for the world list screen to show before proceeding, but sometimes this feature doesn't work, especially if you use fullscreen, and always if you're tabbed out during this part.
                             ; In that case, this number (in milliseconds) defines the hard limit that it will wait after clicking on "Singleplayer" before proceeding.
                             ; This number should basically just be a little longer than your world list screen showing lag.
 
 global difficulty := "Normal" ; Set difficulty here. Options: "Peaceful" "Easy" "Normal" "Hard" "Hardcore"
-global mode := "SSG" ; either SSG or RSG
+global mode := "RSG" ; either SSG or RSG
 global SEED := "-3294725893620991126" ; Default seed is the current Any% SSG 1.16+ seed, you can change it to whatever seed you want.
 
 global timerReset := "NumPad0" ; hotkey for resetting timer to 0
@@ -62,7 +62,7 @@ global inputMethod := "click" ; either "click" or "key" (click is theoretically 
 global windowedReset := "Yes" ; change this to "Yes" if you would like to ensure that you are in windowed mode during resets (in other words, it will press f11 every time you reset if you are in fullscreen)
 global pauseOnLoad := "Yes" ; change this to "No" if you would like the macro to not automatically pause when the world loads in (this is automatically enabled if you're using the autoresetter)
 global activateMCOnLoad := "Yes" ; change this to "No" if you would not like the macro to pull up Minecraft when the world is ready (or when spawn is ready when autoresetter is enabled)
-global fullscreenOnLoad = "No" ; change this to "Yes" if you would like the macro ensure that you are in fullscreen mode when the world is ready (the world will be activated to ensure that no recording is lost)
+global fullscreenOnLoad = "Yes" ; change this to "Yes" if you would like the macro ensure that you are in fullscreen mode when the world is ready (the world will be activated to ensure that no recording is lost)
 global f3pWarning := "enabled" ; change this to "disabled" once you've seen the warning
 global trackFlint := "Yes" ; track flint rates (to make sure that it's not counting gravel from non-run worlds, it will only count it if you run it from a previous world)
                            ; Each run will be logged in a file called SSGstats.csv, and cumulative stats will be stored in a file called SSGstats.txt
@@ -112,6 +112,20 @@ fastResetModStuff()
          break
       }
    }
+}
+
+duncanMod()
+{
+   modsFolder := StrReplace(savesDirectory, "saves", "mods")
+   Loop, Files, %modsFolder%\*.*, F
+   {
+      if(InStr(A_LoopFileName, "autoreset"))
+      {
+         return (True)
+         break
+      }
+   }
+   return (False)
 }
 
 ShiftTab(n)
@@ -634,7 +648,7 @@ FixRD()
    MouseClick, L, RDcoords[1], RDcoords[2]
    Sleep, 1
    MouseClick, L, applyVideoSettingsCoords[1], applyVideoSettingsCoords[2]
-   Sleep, 100
+   Sleep, 150
 }
 
 getMostRecentFile()
@@ -643,6 +657,7 @@ getMostRecentFile()
 	Loop, Files, %savesDirectory%\*.*, D
 	{
 		counter += 1
+        ;OutputDebug, %A_LoopFileLongPath%
 		if (counter = 1)
 		{
 			maxTime := A_LoopFileTimeModified
@@ -683,7 +698,7 @@ DoEverything(manualReset := True)
       if (ErrorLevel = 0)
       {
          if ((trackFlint = "Yes") && getFlintStuff)
-            TrackFlint()
+            TrackFlint(lastWorld)
          Sleep, 50
          break
       }
@@ -817,13 +832,66 @@ isPaused() ;unused
 
 DoAReset(removePrevious := True, manualReset := True)
 {
-   lastWorld := DoEverything(manualReset)
-   OutputDebug, reached title screen
-   CreateWorld()
+   if (duncanMod() and (mode = "RSG"))
+   {
+      lastWorld := DuncanReset(manualReset)
+   }
+   else
+   {
+      lastWorld := DoEverything(manualReset)
+      OutputDebug, reached title screen
+      CreateWorld()
+   }
    if (removePrevious)
       DeleteOrMove(lastWorld)
    UpdateStats()
    PossiblyPause()
+}
+
+DuncanReset(manualReset)
+{
+   WinGetTitle, Title, ahk_exe javaw.exe
+   lastWorld := getMostRecentFile()
+   getFlintStuff := False
+   if (InStr(Title, "player") or InStr(Title, "Instance"))
+   {
+      ExitWorld(manualReset)
+      getFlintStuff := True
+   }
+   if (InFullscreen() && ((windowedReset = "Yes")))
+   {
+      ControlSend, ahk_parent, {F11}
+      Sleep, 50
+   }
+   startTime := A_TickCount
+   lockFile := lastWorld . "\session.lock"
+   Loop
+   {
+      FileRead, sessionlockfile, %lockFile%
+      Sleep, 10
+      if (ErrorLevel = 0)
+      {
+         if ((trackFlint = "Yes") && getFlintStuff)
+            TrackFlint(lastWorld)
+         Sleep, 50
+         break
+      }
+      if ((A_TickCount > (startTime + 100)))
+      {
+         WinGetTitle, theTitle, ahk_exe javaw.exe
+         if (InStr(Title, "player") or InStr(Title, "Instance"))
+            ControlSend, ahk_parent, {Enter}
+      }
+   }
+   newWorld := getMostRecentFile()
+   lockFile := newWorld . "\session.lock"
+   FileRead, sessionlockfile, %lockFile%
+   if (ErrorLevel = 0)
+   {
+      ShiftTab(1)
+      ControlSend, ahk_parent, {Enter}, ahk_exe javaw.exe
+   }
+   return (lastWorld)
 }
 
 DoSomeResets(removePrevious := True)
@@ -1038,14 +1106,14 @@ GiveAngle()
    }
 }
 
-TrackFlint()
+TrackFlint(lastWorld)
 {
    headers := "Time that run ended, Flint obtained, Gravel mined"
    if (!FileExist("SSGstats.csv"))
    {
       FileAppend, %headers%, SSGstats.csv
    }
-   numbersArray := gravelDrops()
+   numbersArray := gravelDrops(lastWorld)
    flintDropped := numbersArray[1]
    gravelMined := numbersArray[2]
    theTime := readableTime()
@@ -1054,9 +1122,9 @@ TrackFlint()
    FileAppend, %numbers%, SSGstats.csv
 }
 
-gravelDrops()
+gravelDrops(lastWorld)
 {
-   currentWorld := getMostRecentFile()
+   currentWorld := lastWorld
    statsFolder := currentWorld . "\stats"
    Loop, Files, %statsFolder%\*.*, F
    {
@@ -1218,9 +1286,49 @@ ShowAndCopyCoords()
 
 Test()
 {  
-   
+   oldWorld := getMostRecentFile()
+   OutputDebug, %oldWorld%
+   Loop
+   {
+      newWorld := getMostRecentFile()
+      OutputDebug, %newWorld%
+      if (newWorld != oldWorld)
+      {
+         MsgBox, world switched
+         break
+      }
+   }
 }
 
+ExitToTitle()
+{
+   WinGetTitle, Title, ahk_exe javaw.exe
+   if (duncanMod())
+   {
+      OutputDebug, duncan mod exists so exiting through options
+      if (InStr(Title, "player") or InStr(Title, "Instance"))
+      {
+         ControlSend, ahk_parent, {Esc}{Tab 6}{Enter}
+         ShiftTab(1)
+         ControlSend, ahk_parent, {Enter}
+      }
+   }
+   else
+   {
+      OutputDebug, duncan mod not here so exiting normally
+      if (InStr(Title, "player") or InStr(Title, "Instance"))
+      {
+         ControlSend, ahk_parent, {Esc}
+         ShiftTab(1)
+         ControlSend, ahk_parent, {Enter}
+      }
+   }
+}
+
+if (mode = "RSG")
+{
+   doAutoResets := "No"
+}
 if ((!FileExist(savesDirectory)) or (!InStr(savesDirectory, "\saves")))
 {
    MsgBox, Your saves directory is invalid. Right click on the script file, click edit script, and put the correct saves directory, then save the script and run it again.
@@ -1303,11 +1411,6 @@ SetWinDelay, 1
 ;global oldClipboard
 global currentSpawn := [9999,9999]
 
-if (mode = "RSG")
-{
-   doAutoResets := "No"
-}
-
 #IfWinActive, Minecraft
 {
 F5::Reload   
@@ -1325,7 +1428,7 @@ End:: ; This is where the keybind for opening to LAN and perching is set.
 return
 
 Home:: ; This is where the keybind for exiting a world is set.
-   ExitWorld()
+   ExitToTitle()
 return
 
 ^B:: ; This is where the keybind is set for adding a spawn to the blacklisted spawns.
