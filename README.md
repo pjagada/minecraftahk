@@ -32,6 +32,10 @@ Reset macros to increase reset efficiency in Minecraft Java Edition speedrunning
 - Customize the options, save, and close the script
 - Right click on the script file and click Run Script
 
+## Planned features
+- 
+- New macro for multi instance that will automatically suspend inactive instances, switch to the instance with the best spawn, and more
+
 
    [latest release]: <https://github.com/pjagada/minecraftahk/releases/latest>
    [Download and install AutoHotkey]: <https://www.autohotkey.com/>
