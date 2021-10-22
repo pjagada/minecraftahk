@@ -37,7 +37,7 @@ SetWorkingDir %A_ScriptDir%
 
 ; Options:
 global savesDirectory := "C:\Users\prana\AppData\Roaming\MultiMC\instances\1.16.11\.minecraft\saves" ; input your minecraft saves directory here. It will probably start with "C:\Users..." and end with "\minecraft\saves"
-global screenDelay := 150 ; Change this value to increase/decrease the number of time (in milliseconds) that each world creation screen is held for. For your run to be verifiable, each of the three screens of world creation must be shown.
+global screenDelay := 200 ; Change this value to increase/decrease the number of time (in milliseconds) that each world creation screen is held for. For your run to be verifiable, each of the three screens of world creation must be shown.
 global worldListWait := 100 ; The macro will wait for the world list screen to show before proceeding, but sometimes this feature doesn't work, especially if you use fullscreen, and always if you're tabbed out during this part.
                             ; In that case, this number (in milliseconds) defines the hard limit that it will wait after clicking on "Singleplayer" before proceeding.
                             ; This number should basically just be a little longer than your world list screen showing lag.
@@ -58,22 +58,23 @@ global worldName := "New World" ; you can name the world whatever you want, put 
 
 global previousWorldOption := "delete" ; What to do with the previous world (either "delete" or "move") when the Page Down hotkey is used. If it says "move" then worlds will be moved to a folder called oldWorlds in your .minecraft folder
 
-global inputMethod := "key" ; either "click" or "key" (click is theoretically faster but kinda experimental at this point and may not work properly depending on your resolution)
+global inputMethod := "click" ; either "click" or "key" (click is theoretically faster but kinda experimental at this point and may not work properly depending on your resolution)
 global windowedReset := "Yes" ; change this to "Yes" if you would like to ensure that you are in windowed mode during resets (in other words, it will press f11 every time you reset if you are in fullscreen)
 global pauseOnLoad := "Yes" ; change this to "No" if you would like the macro to not automatically pause when the world loads in (this is automatically enabled if you're using the autoresetter)
 global activateMCOnLoad := "Yes" ; change this to "No" if you would not like the macro to pull up Minecraft when the world is ready (or when spawn is ready when autoresetter is enabled)
-global fullscreenOnLoad = "Yes" ; change this to "Yes" if you would like the macro ensure that you are in fullscreen mode when the world is ready (the world will be activated to ensure that no recording is lost)
+global fullscreenOnLoad = "No" ; change this to "Yes" if you would like the macro ensure that you are in fullscreen mode when the world is ready (the world will be activated to ensure that no recording is lost)
 global f3pWarning := "enabled" ; change this to "disabled" once you've seen the warning
-global trackFlint := "Yes" ; track flint rates (to make sure that it's not counting gravel from non-run worlds, it will only count it if you run it from a previous world)
+global trackFlint := "No" ; track flint rates (to make sure that it's not counting gravel from non-run worlds, it will only count it if you run it from a previous world)
                            ; Each run will be logged in a file called SSGstats.csv, and cumulative stats will be stored in a file called SSGstats.txt
-global giveAngle := "Yes" ; whether you would like the initial angle to travel at to be said (i think this only works if autoresetter is enabled)
+global giveAngle := "No" ; whether you would like the initial angle to travel at to be said (i think this only works if autoresetter is enabled)
+global slimeView := "Yes" ; whether you want each reset to be high up in slime perspective
 
-global doSettingsReset := "Yes" ; this will detect whether your FOV or render distance are off your normal settings and reset them. Iff you have this selected as "Yes" then fill out the following options.
+global doSettingsReset := "No" ; this will detect whether your FOV or render distance are off your normal settings and reset them. Iff you have this selected as "Yes" then fill out the following options.
 ; To get the mouse coordinates, hover over the point, and press Control R while the script is active to display the coordinates on the screen and copy them to your clipboard, then just paste them at the corresponding location in the lines below.
 global FOV := 80 ; for quake pro put 110
 global FOVcoords := [712, 185] ; these are the mouse coordinates of the FOV above in your options menu
 global renderDistance := 2
-global RDcoords := [444, 160] ; these are the mouse coordinates of the render distance above in your video settings menu
+global RDcoords := [444, 170] ; these are the mouse coordinates of the render distance above in your video settings menu
 global applyVideoSettingsCoords := [1491, 987] ; these are the moue coordinates of the apply button in sodium video settings
 
 ; Autoresetter use:
@@ -92,11 +93,11 @@ global applyVideoSettingsCoords := [1491, 987] ; these are the moue coordinates 
 ;   7) Because of this feature, I recommend starting out with a higher radius than you would need, then just add bad spawns to the blacklist.
 
 ; Autoresetter Options:
-global doAutoResets := "Yes" ; "Yes" or "No" for whether or not to run the autoresetter based on spawns
+global doAutoResets := "No" ; "Yes" or "No" for whether or not to run the autoresetter based on spawns
 ; The autoresetter will automatically reset if your spawn is greater than a certain number of blocks away from a certain point (ignoring y)
 global centerPointX := 162.7 ; this is the x coordinate of that certain point (by default it's the x coordinate of being pushed up against the window of the blacksmith of -3294725893620991126)
 global centerPointZ := 194.5 ; this is the z coordinate of that certain point (by default it's the z coordinate of being pushed up against the window of the blacksmith of -3294725893620991126)
-global radius := 15 ; if this is 10 for example, the autoresetter will not reset if you are within 10 blocks of the point specified above. Set this smaller for better spawns but more resets
+global radius := 20 ; if this is 10 for example, the autoresetter will not reset if you are within 10 blocks of the point specified above. Set this smaller for better spawns but more resets
 ; if you would only like to reset the blacklisted spawns, then just set this number really large (1000 should be good enough), and if you would only like to play out whitelisted spawns, then just make this number negative
 global message := "" ; what message will pop up when a good spawn is found (if you don't want a message to pop up, change this to "")
 global playSound := "No" ; "Yes" or "No" on whether or not to play that Windows sound when good seed is found. To play a custom sound, just save it as spawnready.mp3 in the same folder as this script.
@@ -175,39 +176,33 @@ WaitForHost()
    }
 }
 
-Perch()
+OpenToLAN()
 {
+   Send, {Esc} ; pause
+   ShiftTab(2)
+   fastResetModStuff()
+   Send, {enter} ; open to LAN
    if (version = 17)
    {
-      Send, {Esc} ; pause
-      ShiftTab(2)
-      fastResetModStuff()
-      Send, {enter} ; open to LAN
       Send, {tab}{tab}{enter} ; cheats on
-      Send, `t
-      Send, {enter} ; open to LAN
-      WaitForHost()
-      Send, /
-      Sleep, 70
-      SendInput, data merge entity @e[type=ender_dragon,limit=1] {{}DragonPhase:2{}}
-      Send, {enter}
    }
    else
    {
-      Send, {Esc} ; pause
-      ShiftTab(2)
-      fastResetModStuff()
-      Send, {enter} ; open to LAN
       ShiftTab(1)
       Send, {enter} ; cheats on
-      Send, `t
-      Send, {enter} ; open to LAN
-      WaitForHost()
-      Send, /
-      Sleep, 70
-      SendInput, data merge entity @e[type=ender_dragon,limit=1] {{}DragonPhase:2{}}
-      Send, {enter}
    }
+   Send, `t
+   Send, {enter} ; open to LAN
+   WaitForHost()
+}
+
+Perch()
+{
+   OpenToLAN()
+   Send, /
+   Sleep, 70
+   SendInput, data merge entity @e[type=ender_dragon,limit=1] {{}DragonPhase:2{}}
+   Send, {enter}
 }
 
 WaitForWorldList(previousErrorLevel)
@@ -561,8 +556,25 @@ InputSeed()
    }
 }
 
+SlimeFOV()
+{
+   OpenToLAN()
+   Send, {F3 down}n{F3 up}
+   Send, /
+   Sleep, 70
+   SendInput, summon slime ~ ~ ~ {{}Size:100,NoAI:1{}}{Enter}/
+   Sleep, 70
+   SendInput, spectate @e[type=slime,sort=nearest,limit=1] @p{Enter}
+   Sleep, 500
+   
+}
+
 ExitWorld(manualReset := True)
 {
+   if (slimeView = "Yes" and mode = "RSG" and manualReset)
+   {
+      SlimeFOV()
+   }
    if (!manualReset)
    {
       Sleep, 10
