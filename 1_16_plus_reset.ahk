@@ -559,13 +559,17 @@ InputSeed()
 SlimeFOV()
 {
    OpenToLAN()
-   Send, {F3 down}n{F3 up}
-   Send, /
-   Sleep, 70
-   SendInput, summon slime ~ ~ ~ {{}Size:100,NoAI:1{}}{Enter}/
-   Sleep, 70
-   SendInput, spectate @e[type=slime,sort=nearest,limit=1] @p{Enter}
    Sleep, 500
+   Send, {F3 down}n{F3 up}
+   Sleep, 500
+   Send, /
+   Sleep, 500
+   SendInput, effect give @a minecraft:night_vision 9999 1{Enter}/
+   Sleep, 500
+   SendInput, summon slime ~ ~ ~ {{}Size:120,NoAI:1{}}{Enter}/
+   Sleep, 1000
+   SendInput, spectate @e[type=slime,sort=nearest,limit=1] @p{Enter}
+   Sleep, 1000
    
 }
 
