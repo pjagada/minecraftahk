@@ -57,6 +57,8 @@ IfNotExist, %oldWorldsFolder%
 if (!disableTTS)
   ComObjCreate("SAPI.SpVoice").Speak("Ready")
 
+global version = getVersion(SavesDirectories[1])
+
 #Persistent
 SetTimer, Repeat, 20
 return
@@ -354,10 +356,145 @@ SetTitles() {
   }
 }
 
+Perch()
+{
+   OpenToLAN()
+   Send, /
+   Sleep, 70
+   SendInput, data merge entity @e[type=ender_dragon,limit=1] {{}DragonPhase:2{}}
+   Send, {enter}
+}
+
+OpenToLAN()
+{
+  savesDirectory := SavesDirectories[GetActiveInstanceNum()]
+  thePID := PIDs[GetActiveInstanceNum()]
+   Send, {Esc} ; pause
+   ShiftTab(thePID, 2)
+   if (fastResetModExist(savesDirectory))
+  {
+    ShiftTab(thePID)
+  }
+   Send, {enter} ; open to LAN
+   if (version = 17)
+   {
+      Send, {tab}{tab}{enter} ; cheats on
+   }
+   else
+   {
+      ShiftTab(thePID)
+      Send, {enter} ; cheats on
+   }
+   Send, `t
+   Send, {enter} ; open to LAN
+   WaitForHost(savesDirectory)
+}
+
+ShiftTab(thePID, n := 1)
+{
+   if WinActive("ahk_pid" thePID)
+   {
+      Loop, %n%
+      {
+         Send, +`t
+      }
+   }
+   else
+   {
+      ControlSend, ahk_parent, {Blind}{Shift down}, ahk_pid %thePID%
+      Loop, %n%
+      {
+         ControlSend, ahk_parent, {Blind}{Tab}, ahk_pid %thePID%
+      }
+      ControlSend, ahk_parent, {Blind}{Shift up}, ahk_pid %thePID%
+   }
+}
+
+fastResetModExist(savesDirectory)
+{
+   modsFolder := StrReplace(savesDirectory, "saves", "mods") . "mods"
+   ;MsgBox, %modsFolder%
+   Loop, Files, %modsFolder%\*.*, F
+   {
+    ;MsgBox, %A_LoopFileName%
+      if(InStr(A_LoopFileName, "fast-reset"))
+      {
+         return True
+      }
+   }
+}
+
+WaitForHost(savesDirectory)
+{
+   logFile := StrReplace(savesDirectory, "saves", "logs\latest.log") . "logs\latest.log"
+   numLines := 0
+   Loop, Read, %logFile%
+   {
+      numLines += 1
+   }
+   openedToLAN := False
+   startTime := A_TickCount
+   while (!openedToLAN)
+   {
+      OutputDebug, reading log file
+      if ((A_TickCount - startTime) > 5000)
+      {
+         OutputDebug, open to lan timed out
+         openedToLAN := True
+      }
+      Loop, Read, %logFile%
+      {
+         if ((A_TickCount - startTime) > 5000)
+         {
+            OutputDebug, open to lan timed out
+            openedToLAN := True
+         }
+         if ((numLines - A_Index) < 2)
+         {
+            OutputDebug, %A_LoopReadLine%
+            if (InStr(A_LoopReadLine, "[CHAT] Local game hosted on port"))
+            {
+               OutputDebug, found the [CHAT] Local game hosted on port
+               openedToLAN := True
+            }
+         }
+      }
+   }
+}
+
+Test()
+{
+  thePID := PIDs[GetActiveInstanceNum()]
+  ShiftTab(thePID, 3)
+}
+
+
+getVersion(savesDirectory)
+{
+   optionsFile := StrReplace(savesDirectory, "saves", "options.txt") . "options.txt"
+   ;MsgBox, %optionsFile%
+   FileReadLine, versionLine, %optionsFile%, 1
+   arr := StrSplit(versionLine, ":")
+   dataVersion := arr[2]
+   ;MsgBox, %dataVersion%
+   if (dataVersion > 2600)
+      return (17)
+   else
+      return (16)
+}
+
 RAlt::Suspend ; Pause all macros
 #IfWinActive, Minecraft
   {
     PgDn:: ExitWorld() ; Reset
+    
+    End:: ; Perch
+		Perch()
+	return
+    
+    Insert::
+      Test()
+    return
 
     ; Follow the pattern if you have more instances
     ; Remove keys you dont use to avoid complications
