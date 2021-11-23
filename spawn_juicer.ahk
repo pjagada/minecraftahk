@@ -15,7 +15,7 @@ SetTitleMatchMode, 2
 ; Variables to configure
 global instanceFreezing := True
 global unpauseOnSwitch := False
-global fullscreen := True
+global fullscreen := False ; all resets will be windowed, this will automatically fullscreen the instance that's about to be played
 global disableTTS := False
 global countAttempts := True
 global autoReset := False ; Resets idle worlds after 5 minutes
@@ -24,7 +24,11 @@ global fullScreenDelay := 270 ; increse if fullscreening issues
 global obsDelay := 100 ; increase if not changing scenes in obs
 global restartDelay := 200 ; increase if saying missing instanceNumber in .minecraft (and you ran setup)
 global maxLoops := 20 ; increase if macro regularly locks
+global screenDelay := 70 ; normal delay of each world creation screen
 global oldWorldsFolder := "C:\Users\prana\OneDrive\Desktop\Minecraft\oldWorlds\" ; Old Worlds folder, make it whatever you want
+
+global difficulty := "Normal" ; Set difficulty here. Options: "Peaceful" "Easy" "Normal" "Hard" "Hardcore"
+global SEED := "-3294725893620991126" ; Default seed is the current Any% SSG 1.16+ seed, you can change it to whatever seed you want.
 
 ; Don't configure these
 global currInst := -1
@@ -52,12 +56,24 @@ for i, tmppid in PIDs{
   resetTimes.push(0)
   WinSet, AlwaysOnTop, Off, ahk_pid %tmppid%
 }
+if ((difficulty != "Peaceful") and (difficulty != "Easy") and (difficulty != "Normal") and (difficulty != "Hard") and (difficulty != "Hardcore"))
+{
+   MsgBox, Difficulty entered is invalid. Please check your spelling and enter a valid difficulty. Options are "Peaceful" "Easy" "Normal" "Hard" or "Hardcore"
+   ExitApp
+}
+global version = getVersion(SavesDirectories[1])
+for k, saves_directory in savesDirectories
+{
+	if (PauseOnLostFocus(saves_directory))
+	{
+		MsgBox, Instance %k% has pause on lost focus enabled. Disable this feature by pressing F3 + P in-game, then start the script again.
+		ExitApp
+	}
+}
 IfNotExist, %oldWorldsFolder%
   FileCreateDir %oldWorldsFolder%
 if (!disableTTS)
   ComObjCreate("SAPI.SpVoice").Speak("Ready")
-
-global version = getVersion(SavesDirectories[1])
 
 #Persistent
 SetTimer, Repeat, 20
@@ -78,7 +94,7 @@ Repeat:
               if (HasGameSaved(i) || A_Index > maxLoops)
                 break
             }
-            ControlSend, ahk_parent, {Blind}{F3 Down}{Esc}{F3 Up}, ahk_pid %pid%
+            ControlSend, ahk_parent, {Blind}{Esc}, ahk_pid %pid%
             if (instanceFreezing) {
               sleep, %beforeFreezeDelay%
               SuspendInstance(pid)
@@ -103,9 +119,34 @@ HandleResetState(pid, idx) {
     return
   if (resetStates[idx] == 1 && instanceFreezing) ; Need to resume
     ResumeInstance(pid)
-  else if (resetStates[idx] == 2) ; Exit world
+  else if (resetStates[idx] == 2) ; exit world
+  {
     ControlSend, ahk_parent, {Blind}{Shift down}{Tab}{Shift up}{Enter}, ahk_pid %pid%
-  else if (resetStates[idx] == 3) { ; Move worlds
+  }
+  else if (resetStates[idx] == 3) ; exiting world
+  {
+    if (inWorld(idx))
+      return
+  }
+  else if (resetStates[idx] == 4) ; on title screen
+  {
+    EnterSingleplayer(idx)
+  }
+  else if (resetStates[idx] == 5) ; on world list screen
+  {
+    WorldListScreen(idx)
+  }
+  else if (resetStates[idx] == 6) ; on create new world screen
+  {
+    
+    CreateNewWorldScreen(idx)
+  }
+  else if (resetStates[idx] == 7) ; on more world options screen
+  {
+    MoreWorldOptionsScreen(idx)
+  }
+  
+  else if (resetStates[idx] == 8) { ; Move worlds
     MoveWorlds(idx) 
     if (countAttempts)
     {
@@ -314,7 +355,8 @@ return InStr(currTitle, "Singleplayer") || InStr(currTitle, "Multiplayer") || In
 
 ExitWorld()
 {
-  if (fullscreen) {
+  ;OutputDebug, [macro] exiting world
+  if (inFullscreen(idx)) {
     send, {F11}
     sleep, %fullScreenDelay%
   }
@@ -334,6 +376,7 @@ ExitWorld()
 
 ResetInstance(idx, bg := True) {
   if (bg) {
+    ;OutputDebug, [macro] resetting instance %idx% bg true
     pid := PIDs[idx]
     WinGetTitle, title, ahk_pid %pid%
     if (GetActiveInstanceNum() == idx || !IsInGame(title))
@@ -462,10 +505,124 @@ WaitForHost(savesDirectory)
    }
 }
 
+inWorld(idx)
+{
+  mcDirectory := SavesDirectories[idx]
+  lastWorld := getMostRecentFile(mcDirectory)
+  lockFile := lastWorld . "\session.lock"
+  FileRead, sessionlockfile, %lockFile%
+  if (ErrorLevel = 0)
+  {
+    return false
+  }
+  return true
+}
+
+getMostRecentFile(mcDirectory)
+{
+  savesDirectory := mcDirectory . "saves"
+  ;MsgBox, %savesDirectory%
+	counter := 0
+	Loop, Files, %savesDirectory%\*.*, D
+	{
+		counter += 1
+		if (counter = 1)
+		{
+			maxTime := A_LoopFileTimeModified
+			mostRecentFile := A_LoopFileLongPath
+		}
+		if (A_LoopFileTimeModified >= maxTime)
+		{
+			maxTime := A_LoopFileTimeModified
+			mostRecentFile := A_LoopFileLongPath
+		}
+	}
+   recentFile := mostRecentFile
+   return (recentFile)
+}
+
+EnterSingleplayer(n)
+{
+	thePID := PIDs[n]
+	Sleep, %screenDelay%
+    ControlSend, ahk_parent, {Blind}{Tab}{Enter}, ahk_pid %thePID%
+}
+
+WorldListScreen(n)
+{
+  thePID := PIDs[n]
+  ControlSend, ahk_parent, {Blind}{Tab 3}, ahk_pid %thePID%
+  Sleep, %screenDelay%
+  ControlSend, ahk_parent, {Blind}{enter}, ahk_pid %thePID%
+}
+
+CreateNewWorldScreen(n)
+{
+  thePID := PIDs[n]
+  if (difficulty = "Normal")
+  {
+    ControlSend, ahk_parent, {Blind}{Tab 6}, ahk_pid %thePID%
+  }
+  else
+  {
+    ControlSend, ahk_parent, {Blind}{Tab}, ahk_pid %thePID%
+    if (difficulty = "Hardcore")
+    {
+      ControlSend, ahk_parent, {Blind}{enter}, ahk_pid %thePID%
+    }
+    ControlSend, ahk_parent, {Blind}{Tab}, ahk_pid %thePID%
+    if (difficulty != "Hardcore")
+    {
+      ControlSend, ahk_parent, {Blind}{enter}, ahk_pid %thePID%
+      if (difficulty != "Hard")
+      {
+        ControlSend, ahk_parent, {Blind}{enter}, ahk_pid %thePID%
+        if (difficulty != "Peaceful")
+        {
+          ControlSend, ahk_parent, {Blind}{enter}, ahk_pid %thePID%
+        }
+      }
+    }
+    if (difficulty != "Hardcore")
+    {
+      ControlSend, ahk_parent, {Blind}{Tab}{Tab}, ahk_pid %thePID%
+    }
+    ControlSend, ahk_parent, {Blind}{Tab}{Tab}, ahk_pid %thePID%
+  }
+  Sleep, %screenDelay%
+  ControlSend, ahk_parent, {Blind}{enter}, ahk_pid %thePID%
+}
+
+MoreWorldOptionsScreen(n)
+{
+	thePID := PIDs[n]
+      ControlSend, ahk_parent, {Blind}{Tab 3}, ahk_pid %thePID%
+      Sleep, 1
+      InputSeed(thePID)
+      Sleep, 1
+      ControlSend, ahk_parent, {Blind}{Tab 6}, ahk_pid %thePID%
+      Sleep, %screenDelay%
+      ControlSend, ahk_parent, {Blind}{enter}, ahk_pid %thePID%
+}
+
+InputSeed(thePID)
+{
+  SetKeyDelay, 1
+   if WinActive("ahk_pid" thePID)
+   {
+      SendInput, %SEED%
+   }
+   else
+   {
+      ControlSend, ahk_parent, {Blind}%SEED%, ahk_pid %thePID%
+   }
+   SetKeyDelay, 0
+}
+
 Test()
 {
-  thePID := PIDs[GetActiveInstanceNum()]
-  ShiftTab(thePID, 3)
+  two := inWorld(1)
+  MsgBox, %two%
 }
 
 
@@ -481,6 +638,30 @@ getVersion(savesDirectory)
       return (17)
    else
       return (16)
+}
+
+PauseOnLostFocus(savesDirectory) ;used on script startup
+{
+   optionsFile := StrReplace(savesDirectory, "saves", "options.txt") . "options.txt"
+   if (version = 16)
+      FileReadLine, optionLine, %optionsFile%, 45
+   else
+      FileReadLine, optionLine, %optionsFile%, 48
+   if (InStr(optionLine, "true"))
+      return 1
+   else
+      return 0
+}
+
+inFullscreen(idx)
+{
+  savesDirectory := SavesDirectories[idx]
+   optionsFile := StrReplace(savesDirectory, "saves", "options.txt") . "options.txt"
+   FileReadLine, fullscreenLine, %optionsFile%, 17
+   if (InStr(fullscreenLine, "true"))
+      return 1
+   else
+      return 0
 }
 
 RAlt::Suspend ; Pause all macros
