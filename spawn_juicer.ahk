@@ -167,9 +167,9 @@ HandlePlayerState()
 	}
 	if (counter > 0)
 	{
+      resetStates[bestSpawn] := 0 ; running
       SwitchInstance(bestSpawn)
       AlertUser(bestSpawn)
-      resetStates[bestSpawn] := 0 ; running
       playerState := 1 ; running
       
     }
