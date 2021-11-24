@@ -26,7 +26,7 @@
 
 #NoEnv
 #SingleInstance Force
-#Warn
+;#Warn
 
 SetKeyDelay, 0
 SetWinDelay, 1
@@ -39,12 +39,12 @@ global fullscreen := False ; all resets will be windowed, this will automaticall
 global playSound := True ; will play a windows sound or the sound stored as spawnready.mp3 whenever a spawn is ready
 global disableTTS := False ; this is the "ready" sound that plays when the macro is ready to go
 global countAttempts := True
-global beforeFreezeDelay := 200 ; increase if doesnt join world
+global beforeFreezeDelay := 2000 ; increase if doesnt join world
 global fullScreenDelay := 270 ; increse if fullscreening issues
 global obsDelay := 100 ; increase if not changing scenes in obs
 global restartDelay := 200 ; increase if saying missing instanceNumber in .minecraft (and you ran setup)
 global maxLoops := 20 ; increase if macro regularly locks
-global screenDelay := 200 ; normal delay of each world creation screen
+global screenDelay := 1000 ; normal delay of each world creation screen, increase if random seeds are being created1, decrease for faster resets
 global oldWorldsFolder := "C:\Users\prana\OneDrive\Desktop\Minecraft\oldWorlds\" ; Old Worlds folder, make it whatever you want
 
 ; Autoresetter Options:
@@ -122,6 +122,7 @@ IfNotExist, %oldWorldsFolder%
   FileCreateDir %oldWorldsFolder%
 if (!disableTTS)
   ComObjCreate("SAPI.SpVoice").Speak("Ready")
+MsgBox, resetting will start when you close this box
 
 #Persistent
 SetTimer, Repeat, 20
@@ -240,7 +241,7 @@ HandleResetState(pid, idx) {
   }
   else if (resetStates[idx] == 12) ; check spawn
   {
-    if (GoodSpawn(n)) {
+    if (GoodSpawn(idx)) {
       resetStates[idx] := 13 ; good spawn unfrozen
     }
     else
@@ -343,10 +344,10 @@ GetInstanceTotal() {
   WinGet, all, list
   Loop, %all%
   {
-    WinGet, pid, PID, % "ahk_id " all%A_Index%
-    WinGetTitle, title, ahk_pid %pid%
+    WinGet, thePID, PID, % "ahk_id " all%A_Index%
+    WinGetTitle, title, ahk_pid %thePID%
     if (InStr(title, "Minecraft*")) {
-      rawPIDs[idx] := pid
+      rawPIDs[idx] := thePID
       ;OutputDebug, [macro] idx: %idx%, title: %title%, pid: %pid%
       idx += 1
     }
@@ -395,10 +396,10 @@ UnsuspendAll() {
   WinGet, all, list
   Loop, %all%
   {
-    WinGet, pid, PID, % "ahk_id " all%A_Index%
-    WinGetTitle, title, ahk_pid %pid%
+    WinGet, thePID, PID, % "ahk_id " all%A_Index%
+    WinGetTitle, title, ahk_pid %thePID%
     if (InStr(title, "Minecraft*"))
-      ResumeInstance(pid)
+      ResumeInstance(thePID)
   }
 }
 
@@ -427,16 +428,16 @@ return InStr(title, "Not Responding")
 SwitchInstance(idx)
 {
   currInst := idx
-  pid := PIDs[idx]
+  thePID := PIDs[idx]
   if (instanceFreezing)
-    ResumeInstance(pid)
-  WinSet, AlwaysOnTop, On, ahk_pid %pid%
-  WinSet, AlwaysOnTop, Off, ahk_pid %pid%
+    ResumeInstance(thePID)
+  WinSet, AlwaysOnTop, On, ahk_pid %thePID%
+  WinSet, AlwaysOnTop, Off, ahk_pid %thePID%
   send {Numpad%idx% down}
   sleep, %obsDelay%
   send {Numpad%idx% up}
   if (fullscreen) {
-    ControlSend, ahk_parent, {Blind}{F11}, ahk_pid %pid%
+    ControlSend, ahk_parent, {Blind}{F11}, ahk_pid %thePID%
     sleep, %fullScreenDelay%
   }
   Send, {LButton} ; Make sure the window is activated
@@ -456,12 +457,12 @@ MoveWorlds(idx)
 }
 
 GetActiveInstanceNum() {
-  WinGet, pid, PID, A
-  WinGetTitle, title, ahk_pid %pid%
+  WinGet, thePID, PID, A
+  WinGetTitle, title, ahk_pid %thePID%
   if (IsInGame(title)) {
-    for i, tmppid in PIDs {
-      if (tmppid == pid)
-        return i
+    for r, temppid in PIDs {
+      if (temppid == thePID)
+        return r
     }
   }
 return -1
@@ -484,8 +485,8 @@ ExitWorld()
 }
 
 SetTitles() {
-  for i, pid in PIDs {
-    WinSetTitle, ahk_pid %pid%, , Minecraft* - Instance %i%
+  for g, thePID in PIDs {
+    WinSetTitle, ahk_pid %thePID%, , Minecraft* - Instance %g%
   }
 }
 
@@ -763,28 +764,28 @@ GiveAngle(n)
    {
       xDiff := xCoords[n] - centerPointX
       currentX := xCoords[n]
-      OutputDebug, current x coords %currentX% minus destination X %centerPointX% equals %xDiff%
+      OutputDebug, [macro] current x coords %currentX% minus destination X %centerPointX% equals %xDiff%
       zDiff := centerPointZ - zCoords[n]
       currentZ := zCoords[n]
-      OutputDebug, destination Z %centerPointZ% minus current z coords %currentZ% equals %zDiff%
+      OutputDebug, [macro] destination Z %centerPointZ% minus current z coords %currentZ% equals %zDiff%
       angle := ATan(xDiff / zDiff) * 180 / 3.14159265358979
-      OutputDebug, raw angle is %angle%
+      OutputDebug, [macro] raw angle is %angle%
       if (zDiff < 0)
       {
          angle := angle - 180
-         OutputDebug, destination is north of spawn so subtracting 180 from angle for new angle of %angle%
+         OutputDebug, [macro] destination is north of spawn so subtracting 180 from angle for new angle of %angle%
       }
       if (zDiff = 0)
       {
-         OutputDebug, z difference is 0 so it's a 90 degree
+         OutputDebug, [macro] z difference is 0 so it's a 90 degree
          if (xDiff < 0)
          {
-            OutputDebug, x difference is negative so angle is -90 degrees
+            OutputDebug, [macro] x difference is negative so angle is -90 degrees
             angle := -90.0
          }
          else if (xDiff > 0)
          {
-            OutputDebug, x difference is positive so angle is 90 degrees
+            OutputDebug, [macro] x difference is positive so angle is 90 degrees
             angle := 90.0
          }
       }
@@ -799,20 +800,20 @@ GoodSpawn(n)
 {
    xCoord := xCoords[n]
    zCoord := zCoords[n]
-   OutputDebug, spawn is %xCoord%, %zCoord%
+   OutputDebug, [macro] spawn is %xCoord%, %zCoord%
    xDisplacement := xCoord - centerPointX
    zDisplacement := zCoord - centerPointZ
    distance := Sqrt((xDisplacement * xDisplacement) + (zDisplacement * zDisplacement))
-   OutputDebug, distance of %distance%
+   OutputDebug, [macro] distance of %distance%
    distances[n] := distance
    if (inList(xCoord, zCoord, "whitelist.txt"))
    {
-      OutputDebug, in whitelist
+      OutputDebug, [macro] in whitelist
       return True
    }
    if (inList(xCoord, zCoord, "blacklist.txt"))
    {
-      OutputDebug, in blacklist
+      OutputDebug, [macro] in blacklist
       return False
    }
    if (distance <= radius)
@@ -894,7 +895,7 @@ AddToBlacklist()
 	t := GetActiveInstanceNum()
    xCoord := xCoords[t]
    zCoord := zCoords[t]
-   OutputDebug, blacklisting %xCoord%, %zCoord%
+   OutputDebug, [macro] blacklisting %xCoord%, %zCoord%
    theString := xCoord . "," . zCoord . ";" . xCoord . "," . zCoord
    if (!FileExist("blacklist.txt"))
       FileAppend, %theString%, blacklist.txt
@@ -902,10 +903,15 @@ AddToBlacklist()
       FileAppend, `n%theString%, blacklist.txt
 }
 
-RAlt::Suspend ; Pause all macros
+
 #IfWinActive, Minecraft
-  {
-    PgDn:: ExitWorld() ; Reset
+{
+  RAlt::  ; Pause all macros
+    Suspend
+  return
+    PgDn:: ; Reset
+      ExitWorld()
+    return
     
     End:: ; Perch
 		Perch()
@@ -928,4 +934,4 @@ RAlt::Suspend ; Pause all macros
       UnsuspendAll()
       ExitApp
    return
-  }
+}
