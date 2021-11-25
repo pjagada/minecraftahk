@@ -1,6 +1,6 @@
 ; Minecraft Reset Script (1.16+)
-; Author:  Peej, with help/code from jojoe77777, onvo, SLTRR, DesktopFolder, Four, and _D4rkS0ul_
-; Authors are not liable for any run rejections.
+; Made by Peej
+; Not liable for any run rejections.
 ; To use this script, make sure you have autohotkey installed (autohotkey.com), then right click on the script file, and click "Run Script."
 ; If you make any changes to the script by right clicking and clicking "Edit Script," make sure to reload the script by pressing F5 or by right clicking on the logo in your taskbar and clicking "Reload Script."
 
@@ -67,9 +67,8 @@ global f3pWarning := "enabled" ; change this to "disabled" once you've seen the 
 global trackFlint := "Yes" ; track flint rates (to make sure that it's not counting gravel from non-run worlds, it will only count it if you run it from a previous world)
                            ; Each run will be logged in a file called SSGstats.csv, and cumulative stats will be stored in a file called SSGstats.txt
 global giveAngle := "Yes" ; whether you would like the initial angle to travel at to be said (i think this only works if autoresetter is enabled)
-global slimeView := "No" ; whether you want each reset to be high up in slime perspective
 
-global doSettingsReset := "Yes" ; this will detect whether your FOV or render distance are off your normal settings and reset them. Iff you have this selected as "Yes" then fill out the following options.
+global doSettingsReset := "No" ; this will detect whether your FOV or render distance are off your normal settings and reset them. Iff you have this selected as "Yes" then fill out the following options.
 ; To get the mouse coordinates, hover over the point, and press Control R while the script is active to display the coordinates on the screen and copy them to your clipboard, then just paste them at the corresponding location in the lines below.
 global FOV := 80 ; for quake pro put 110
 global FOVcoords := [712, 185] ; these are the mouse coordinates of the FOV above in your options menu
@@ -450,7 +449,7 @@ MoreWorldOptionsScreen()
          MouseClick, L, W * 725 // 1936, H * 1012 // 1056, 1
    }
 }
-
+global slimeView := "No" ; whether you want each reset to be high up in slime perspective
 PossiblyPause()
 {
    Sleep, 2000
@@ -734,7 +733,7 @@ DeleteOrMove(lastWorld)
 {
    array := StrSplit(lastWorld, "\saves\")
    justTheWorld := array[2]
-   if (InStr(justTheWorld, "_") != 1)
+   if ((InStr(justTheWorld, "_") != 1) and ((InStr(justTheWorld, worldName)) or (InStr(justTheWorld, "Speedrun"))))
    {
       if (previousWorldOption = "delete")
          FileRemoveDir, %lastWorld%, 1
