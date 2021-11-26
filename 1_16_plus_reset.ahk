@@ -62,9 +62,9 @@ global inputMethod := "click" ; either "click" or "key" (click is theoretically 
 global windowedReset := "Yes" ; change this to "Yes" if you would like to ensure that you are in windowed mode during resets (in other words, it will press f11 every time you reset if you are in fullscreen)
 global pauseOnLoad := "Yes" ; change this to "No" if you would like the macro to not automatically pause when the world loads in (this is automatically enabled if you're using the autoresetter)
 global activateMCOnLoad := "Yes" ; change this to "No" if you would not like the macro to pull up Minecraft when the world is ready (or when spawn is ready when autoresetter is enabled)
-global fullscreenOnLoad = "Yes" ; change this to "Yes" if you would like the macro ensure that you are in fullscreen mode when the world is ready (the world will be activated to ensure that no recording is lost)
+global fullscreenOnLoad = "No" ; change this to "Yes" if you would like the macro ensure that you are in fullscreen mode when the world is ready (the world will be activated to ensure that no recording is lost)
 global f3pWarning := "enabled" ; change this to "disabled" once you've seen the warning
-global trackFlint := "Yes" ; track flint rates (to make sure that it's not counting gravel from non-run worlds, it will only count it if you run it from a previous world)
+global trackFlint := "No" ; track flint rates (to make sure that it's not counting gravel from non-run worlds, it will only count it if you run it from a previous world)
                            ; Each run will be logged in a file called SSGstats.csv, and cumulative stats will be stored in a file called SSGstats.txt
 global giveAngle := "Yes" ; whether you would like the initial angle to travel at to be said (i think this only works if autoresetter is enabled)
 
@@ -92,7 +92,7 @@ global applyVideoSettingsCoords := [1491, 987] ; these are the moue coordinates 
 ;   7) Because of this feature, I recommend starting out with a higher radius than you would need, then just add bad spawns to the blacklist.
 
 ; Autoresetter Options:
-global doAutoResets := "Yes" ; "Yes" or "No" for whether or not to run the autoresetter based on spawns
+global doAutoResets := "No" ; "Yes" or "No" for whether or not to run the autoresetter based on spawns
 ; The autoresetter will automatically reset if your spawn is greater than a certain number of blocks away from a certain point (ignoring y)
 global centerPointX := 162.7 ; this is the x coordinate of that certain point (by default it's the x coordinate of being pushed up against the window of the blacksmith of -3294725893620991126)
 global centerPointZ := 194.5 ; this is the z coordinate of that certain point (by default it's the z coordinate of being pushed up against the window of the blacksmith of -3294725893620991126)
@@ -733,7 +733,7 @@ DeleteOrMove(lastWorld)
 {
    array := StrSplit(lastWorld, "\saves\")
    justTheWorld := array[2]
-   if ((InStr(justTheWorld, "_") != 1) and ((InStr(justTheWorld, worldName)) or (InStr(justTheWorld, "Speedrun"))))
+   if ((InStr(justTheWorld, "_") != 1) and ((InStr(justTheWorld, worldName)) or (InStr(justTheWorld, "Speedrun #"))))
    {
       if (previousWorldOption = "delete")
          FileRemoveDir, %lastWorld%, 1
