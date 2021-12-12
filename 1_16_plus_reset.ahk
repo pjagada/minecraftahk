@@ -67,6 +67,8 @@ global f3pWarning := "enabled" ; change this to "disabled" once you've seen the 
 global trackFlint := "Yes" ; track flint rates (to make sure that it's not counting gravel from non-run worlds, it will only count it if you run it from a previous world)
                            ; Each run will be logged in a file called SSGstats.csv, and cumulative stats will be stored in a file called SSGstats.txt
 global giveAngle := "Yes" ; whether you would like the initial angle to travel at to be said (i think this only works if autoresetter is enabled)
+global f3showDuration = 100 ; how many milliseconds f3 is shown for at the start of a run (for verification purposes). Make this -1 if you don't want it to show f3. Remember that one frame at 60 fps is 17 milliseconds, and one frame at 30 fps is 33 milliseconds. You'll probably want to show this for 2 or 3 frames to be safe.
+global f3showDelay = 200 ; how many milliseconds of delay before showing f3. If f3 isn't being shown, this is all probably happening during the joining world screen, so increase this number.
 
 global doSettingsReset := "No" ; this will detect whether your FOV or render distance are off your normal settings and reset them. Iff you have this selected as "Yes" then fill out the following options.
 ; To get the mouse coordinates, hover over the point, and press Control R while the script is active to display the coordinates on the screen and copy them to your clipboard, then just paste them at the corresponding location in the lines below.
@@ -74,7 +76,7 @@ global FOV := 80 ; for quake pro put 110
 global FOVcoords := [712, 185] ; these are the mouse coordinates of the FOV above in your options menu
 global renderDistance := 2
 global RDcoords := [444, 170] ; these are the mouse coordinates of the render distance above in your video settings menu
-global applyVideoSettingsCoords := [1491, 987] ; these are the moue coordinates of the apply button in sodium video settings
+global applyVideoSettingsCoords := [1491, 987] ; these are the mouse coordinates of the apply button in sodium video settings
 
 ; Autoresetter use:
 ;   1) By default, the autoresetter will reset all spawns outside of the set radius of the set focal point and will alert you of any spawns inside or equal to the set radius of the set focal point.
@@ -100,6 +102,20 @@ global radius := 13 ; if this is 10 for example, the autoresetter will not reset
 ; if you would only like to reset the blacklisted spawns, then just set this number really large (1000 should be good enough), and if you would only like to play out whitelisted spawns, then just make this number negative
 global message := "" ; what message will pop up when a good spawn is found (if you don't want a message to pop up, change this to "")
 global playSound := "No" ; "Yes" or "No" on whether or not to play that Windows sound when good spawn is found. To play a custom sound, just save it as spawnready.mp3 in the same folder as this script.
+
+ShowF3()
+{
+   if (f3showDuration < 0)
+   {
+      return
+   }
+   Sleep, f3showDelay
+   ControlSend, ahk_parent, {Esc}, ahk_exe javaw.exe
+   ControlSend, ahk_parent, {F3}, ahk_exe javaw.exe
+   Sleep, %f3showDuration%
+   ControlSend, ahk_parent, {F3}, ahk_exe javaw.exe
+   ControlSend, ahk_parent, {Esc}, ahk_exe javaw.exe
+}
 
 fastResetModStuff()
 {
@@ -479,6 +495,7 @@ PossiblyPause()
                      WinActivate, ahk_exe javaw.exe
                   if ((fullscreenOnLoad = "Yes") && !(InFullscreen()))
                      ControlSend, ahk_parent, {F11}
+                  ShowF3()
                }
             }
             break
@@ -1066,6 +1083,13 @@ inList(xCoord, zCoord, fileName)
 
 AlertUser()
 {
+   if ((activateMCOnLoad = "Yes") or (fullscreenOnLoad = "Yes"))
+      WinActivate, ahk_exe javaw.exe
+   ShowF3()
+   if (message != "")
+      MsgBox, %message%
+   if ((fullscreenOnLoad = "Yes") && !(InFullscreen()))
+      ControlSend, ahk_parent, {F11}
    if (playSound = "Yes")
    {
       if (FileExist("spawnready.mp3"))
@@ -1073,12 +1097,6 @@ AlertUser()
       else
          SoundPlay *16
    }
-   if ((activateMCOnLoad = "Yes") or (fullscreenOnLoad = "Yes"))
-      WinActivate, ahk_exe javaw.exe
-   if (message != "")
-      MsgBox, %message%
-   if ((fullscreenOnLoad = "Yes") && !(InFullscreen()))
-      ControlSend, ahk_parent, {F11}
    GiveAngle()
    Send, {%timerReset%}
 }
