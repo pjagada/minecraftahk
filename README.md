@@ -15,6 +15,7 @@ Reset macros to increase reset efficiency in Minecraft Java Edition speedrunning
 - Option to ensure resets occur in windowed mode for verification purposes
 - Hotkey to force dragon perch on dead set seed runs
 - Track daily and cumulative flint rates
+- Option to show f3 on world load
 
 ##### Autoresetter features
 
@@ -32,10 +33,14 @@ Reset macros to increase reset efficiency in Minecraft Java Edition speedrunning
 - Customize the options, save, and close the script
 - Right click on the script file and click Run Script
 
+### Autoresetter blacklists
+- [My blacklist] (for 1.17 ssg gravel seed)
+- [LeonToast's blacklist] (for 1.17 ssg gravel seed but stricter)
+
 ## Planned features
--
-- New macro for multi instance that will automatically suspend inactive instances, switch to the instance with the best spawn, and more
 
 
    [latest release]: <https://github.com/pjagada/minecraftahk/releases/latest>
    [Download and install AutoHotkey]: <https://www.autohotkey.com/>
+   [My blacklist]: <https://cdn.discordapp.com/attachments/846477312438566934/919571471737704508/blacklist.txt>
+   [LeonToast's blacklist]: <https://cdn.discordapp.com/attachments/854508085422325770/859798746098696222/blacklist.txt>
