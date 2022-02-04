@@ -1,5 +1,7 @@
 # MinecraftAHK
 
+Use [spawn juicer] instead, this macro is outdated
+
 Reset macros to increase reset efficiency in Minecraft Java Edition speedrunning
 
 ## Features
@@ -44,3 +46,4 @@ Reset macros to increase reset efficiency in Minecraft Java Edition speedrunning
    [Download and install AutoHotkey]: <https://www.autohotkey.com/>
    [My blacklist]: <https://cdn.discordapp.com/attachments/846477312438566934/919571471737704508/blacklist.txt>
    [LeonToast's blacklist]: <https://cdn.discordapp.com/attachments/854508085422325770/859798746098696222/blacklist.txt>
+   [spawn juicer]: <https://github.com/pjagada/spawn-juicer>
